@@ -102,6 +102,7 @@ def run(opt):
     dataset_name = opt.data_dir.split('/')[-1]
     logger.set_metadata("dataset_name",dataset_name)
     logger.set_metadata("model_info",nonlin)
+    logger.set_metadata("lr",opt.lr)
     
     
     
