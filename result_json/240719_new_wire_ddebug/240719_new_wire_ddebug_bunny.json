@@ -1,0 +1,11 @@
+{
+    "result": {
+        "0": 30.343858087605327,
+        "1": 34.835644231744475
+    },
+    "path": "240719_new_wire_ddebug_bunny",
+    "depth": 4,
+    "width": 256,
+    "dataset_name": "bunny",
+    "model_info": "wire"
+}

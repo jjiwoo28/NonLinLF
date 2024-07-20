@@ -1,0 +1,11 @@
+{
+    "result": {
+        "0": 22.213132264685157,
+        "1": 25.61588504070553,
+        "2": 27.571785964650516
+    },
+    "path": "240719_wire_lf_wire_debug_bracelet",
+    "depth": 4,
+    "width": 256,
+    "dataset_name": "bracelet"
+}
