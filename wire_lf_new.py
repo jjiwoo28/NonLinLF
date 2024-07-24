@@ -5,6 +5,7 @@ import sys
 from tqdm import tqdm
 import importlib
 import time
+import glob
 
 import argparse
 
@@ -41,13 +42,15 @@ def parse_argument():
     parser.add_argument('--exp_dir', type=str , default="result/stanford_half/beans")
     
     parser.add_argument('--test_freq', type=int , default=10)
-    parser.add_argument('--lr', type=int , default=5e-3)
+    parser.add_argument('--save_ckpt_path', type=int , default=100)
+    parser.add_argument('--lr', type=float , default=5e-3)
     
     parser.add_argument('--save_test_img', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
     parser.add_argument('--nonlin', type=str , default="relu")
-    
+
+    parser.add_argument("--gpu", default="0", type=str, help="Comma-separated list of GPU(s) to use.")
 
     opt = parser.parse_args()
     return opt 
@@ -55,6 +58,7 @@ def parse_argument():
 
 
 def run(opt):
+    os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
 
     nonlin = opt.nonlin            # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     niters = opt.whole_epoch               # Number of SGD iterations
@@ -95,6 +99,7 @@ def run(opt):
     
     logger_path = os.path.join(save_dir , 'log')
     test_path = os.path.join(save_dir , 'test')
+    ckpt_path = os.path.join(save_dir, 'checkpoint')
     
     logger = PSNRLogger(logger_path , opt.exp_dir.split('/')[-1])
     logger.set_metadata("depth",opt.depth)
@@ -117,9 +122,12 @@ def run(opt):
     
     paths.append(logger_path)
     paths.append(test_path)
+    paths.append(ckpt_path)
     for p in paths:
         if not os.path.exists(p):
             os.makedirs(p)
+
+
 
     # load nelf data
     print(f"Start loading...")
@@ -207,7 +215,25 @@ def run(opt):
                     scale=sigma0,
                     pos_encode=posencode,
                     sidelength=sidelength)
-        
+    
+
+    ckpt_paths = glob.glob(os.path.join(ckpt_path,"*.pth"))
+    #breakpoint()
+    load_epoch = 0
+  
+    if len(ckpt_paths) > 0:
+        for path in ckpt_paths:
+            print(ckpt_path)
+            ckpt_id = int(os.path.basename(path).split("ep")[1].split(".")[0])
+            load_epoch = max(load_epoch, ckpt_id)
+        ckpt_name = f"./{path}/nelf-{load_epoch}.pth"
+        # ckpt_name = f"{self.checkpoints}nelf-{self.fourier_epoch}.pth"
+        print(f"Load weights from {ckpt_name}")
+
+        ckpt = torch.load(ckpt_name)
+
+        model.load_state_dict(ckpt)
+
     # Send model to CUDA
     model.cuda()
     
@@ -244,7 +270,8 @@ def run(opt):
     init_time = time.time()
     train_size = uvst_whole.shape[0]
 
-    for epoch in tbar:
+    for i in tbar:
+        epoch = load_epoch + i + 1
 #        indices = torch.randperm(H*W)
         indices = torch.randperm(train_size)
        
@@ -269,7 +296,7 @@ def run(opt):
             loss.backward()
             optim.step()
         
-        time_array[epoch] = time.time() - init_time
+        #time_array[epoch] = time.time() - init_time
 
         with torch.no_grad():
 #            pixelvalues_val = model(uvst_whole_val)
@@ -279,6 +306,10 @@ def run(opt):
 #            mse_array[epoch] = ((gt - rec)**2).mean().item()
 #            im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
 #            im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
+            if epoch % opt.save_ckpt_path == 0 :
+                cpt_path = ckpt_path + f"{epoch}.pth"
+                torch.save(model.state_dict(), cpt_path)
+
             if epoch % test_freq ==0:
                 i = 0
                 count = 0
@@ -317,6 +348,13 @@ def run(opt):
                 logger.push(whole_psnr/count , epoch)
                 
                 logger.save_results()
+
+                for name, param in model.named_parameters():
+                    if 'omega_0' in name or 'scale_0' in name:
+                        print(f'Epoch {epoch}, {name}: {param.item()}')
+
+                # cpt_path = os.path.join(ckpt_path,f"ep{epoch}.pth")
+                # torch.save(model.state_dict(), cpt_path)
                 
 #                psnrval = -10*torch.log10(mse_loss_array[epoch])
 #                tbar.set_description('%.1f'%psnrval)
@@ -332,22 +370,30 @@ def run(opt):
 #        if (mse_array[epoch] < best_mse) or (epoch == 0):
 #            best_mse = mse_array[epoch]
 #            best_img = imrec
-    
-    if posencode:
-        nonlin = 'posenc'
+    cpt_path = os.path.join(ckpt_path,f"{epoch}.pth")
+    torch.save(model.state_dict(), cpt_path)
+
+   
+
+    # if posencode:
+    #     nonlin = 'posenc'
         
-    mdict = {
-            #'rec': best_img,
-            # 'gt': im,
-            # 'im_noisy': im_noisy,
-            # 'mse_noisy_array': mse_loss_array.detach().cpu().numpy(), 
-             'mse_array': mse_array.detach().cpu().numpy(),
-             'time_array': time_array.detach().cpu().numpy()}
+    # mdict = {
+    #         #'rec': best_img,
+    #         # 'gt': im,
+    #         # 'im_noisy': im_noisy,
+    #         # 'mse_noisy_array': mse_loss_array.detach().cpu().numpy(), 
+    #          'mse_array': mse_array.detach().cpu().numpy(),
+    #          'time_array': time_array.detach().cpu().numpy()}
     
 #    os.makedirs('results/denoising', exist_ok=True)
 #    io.savemat('results/denoising/%s.mat'%nonlin, mdict)
 
 #    print('Best PSNR: %.2f dB'%utils.psnr(im, best_img))
+
+    
+
+
 
 
 if __name__ =="__main__":
