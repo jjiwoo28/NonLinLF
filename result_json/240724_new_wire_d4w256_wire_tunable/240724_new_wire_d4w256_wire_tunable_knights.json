@@ -1,0 +1,11 @@
+{
+    "result": {
+        "0": 0
+    },
+    "path": "240724_new_wire_d4w256_wire_tunable_knights",
+    "depth": 2,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "wire",
+    "lr": 0.005
+}

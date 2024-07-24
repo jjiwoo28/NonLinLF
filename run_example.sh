@@ -12,9 +12,10 @@ epoch="300"
 #datasets=("beans" "gem" "bunny" "bracelet")  
 #datasets=("beans")  
 
-datasets=( "knights" "gem" "bunny" "bracelet" "chess" "flowers" "tarot")  
+#datasets=( "knights" "gem" "bunny" "bracelet" "chess" "flowers" "tarot")  
 result_path="/data/result/${test_day}"
-datasets=("bunny")  
+#datasets=("bunny")  
+datasets=( "knights" "gem"  "bracelet" "chess" "flowers" "tarot")  
 
 
 for dataset in "${datasets[@]}"; do
@@ -30,7 +31,8 @@ done
 
 test_day="240719_new_relu_d4w256"
 
-datasets=( "knights" "gem" "bunny" "bracelet" "chess" "flowers" "tarot")  
+#datasets=( "knights" "gem" "bunny" "bracelet" "chess" "flowers" "tarot")  
+datasets=( "flowers" "tarot")  
 result_path="/data/result/${test_day}"
 
 

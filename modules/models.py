@@ -18,7 +18,7 @@ model_dict = {'gauss': gauss,
 def get_INR(nonlin, in_features, hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
             hidden_omega_0=30, scale=10, pos_encode=False,
-            sidelength=512, fn_samples=None, use_nyquist=True):
+            sidelength=512, fn_samples=None, use_nyquist=True , wire_tunable=False):
     '''
         Function to get a class instance for a given type of
         implicit neural representation
@@ -48,19 +48,34 @@ def get_INR(nonlin, in_features, hidden_features, hidden_layers,
                 positional encoding
         Output: An INR class instance
     '''
-
-    inr_mod = model_dict[nonlin]
-    model = inr_mod.INR(in_features,
-                        hidden_features,
-                        hidden_layers,
-                        out_features,
-                        outermost_linear,
-                        first_omega_0,
-                        hidden_omega_0,
-                        scale,
-                        pos_encode,
-                        sidelength,
-                        fn_samples,
-                        use_nyquist)
-    
+    if nonlin == 'wire':
+        inr_mod = model_dict[nonlin]
+        model = inr_mod.INR(in_features,
+                            hidden_features,
+                            hidden_layers,
+                            out_features,
+                            outermost_linear,
+                            first_omega_0,
+                            hidden_omega_0,
+                            scale,
+                            pos_encode,
+                            sidelength,
+                            fn_samples,
+                            use_nyquist,
+                            wire_tunable)
+    else:
+        inr_mod = model_dict[nonlin]
+        model = inr_mod.INR(in_features,
+                            hidden_features,
+                            hidden_layers,
+                            out_features,
+                            outermost_linear,
+                            first_omega_0,
+                            hidden_omega_0,
+                            scale,
+                            pos_encode,
+                            sidelength,
+                            fn_samples,
+                            use_nyquist)
+        
     return model

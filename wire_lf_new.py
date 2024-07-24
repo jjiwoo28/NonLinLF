@@ -46,6 +46,7 @@ def parse_argument():
     parser.add_argument('--lr', type=float , default=5e-3)
     
     parser.add_argument('--save_test_img', action='store_true')
+    parser.add_argument('--wire_tunable', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
     parser.add_argument('--nonlin', type=str , default="relu")
@@ -204,6 +205,7 @@ def run(opt):
 #        sidelength = H
         sidelength = 512
         
+
     model = models.get_INR(
                     nonlin=nonlin,
                     in_features=4,
@@ -214,7 +216,8 @@ def run(opt):
                     hidden_omega_0=omega0,
                     scale=sigma0,
                     pos_encode=posencode,
-                    sidelength=sidelength)
+                    sidelength=sidelength,
+                    wire_tunable=opt.wire_tunable)
     
 
     ckpt_paths = glob.glob(os.path.join(ckpt_path,"*.pth"))

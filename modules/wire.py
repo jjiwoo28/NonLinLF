@@ -96,7 +96,7 @@ class INR(nn.Module):
                  out_features, outermost_linear=True,
                  first_omega_0=30, hidden_omega_0=30., scale=10.0,
                  pos_encode=False, sidelength=512, fn_samples=None,
-                 use_nyquist=True):
+                 use_nyquist=True , wire_tunable = False):
         super().__init__()
         
         # All results in the paper were with the default complex 'gabor' nonlinearity
@@ -118,13 +118,14 @@ class INR(nn.Module):
                                     omega0=first_omega_0,
                                     sigma0=scale,
                                     is_first=True,
-                                    trainable=False))
+                                    trainable=wire_tunable))
 
         for i in range(hidden_layers):
             self.net.append(self.nonlin(hidden_features,
                                         hidden_features, 
                                         omega0=hidden_omega_0,
-                                        sigma0=scale))
+                                        sigma0=scale,
+                                        trainable= wire_tunable))
 
         final_linear = nn.Linear(hidden_features,
                                  out_features,
