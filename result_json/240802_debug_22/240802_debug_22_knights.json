@@ -1,0 +1,39 @@
+{
+    "path": "240802_debug_22_knights",
+    "depth": 2,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "wire",
+    "lr": 0.001,
+    "result_time": {
+        "1": {
+            "forward": 55.07492595400128,
+            "backward": 96.37302379608161,
+            "per_epoch_whole": 42750.6171875
+        },
+        "2": {
+            "forward": 54.571481813703265,
+            "backward": 97.53277993883398,
+            "per_epoch_whole": 42953.7890625
+        },
+        "3": {
+            "forward": 54.92448496137345,
+            "backward": 97.92857458932066,
+            "per_epoch_whole": 43156.96484375
+        },
+        "4": {
+            "forward": 55.0720766067505,
+            "backward": 98.12153813498362,
+            "per_epoch_whole": 43260.44140625
+        },
+        "5": {
+            "forward": 55.12071831566948,
+            "backward": 98.1829618998936,
+            "per_epoch_whole": 43288.1875
+        }
+    },
+    "result": {
+        "0": 0,
+        "5": 23.095508158670004
+    }
+}

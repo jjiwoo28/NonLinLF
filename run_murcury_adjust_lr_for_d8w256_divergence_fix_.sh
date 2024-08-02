@@ -4,7 +4,7 @@ stanford_path="/data/hmjung/NeuLF_rgb/dataset/stanford_half"
 
 
 test_day="240721_new_wire_d8w256_adjust_lr_1e-3"
-depth="8"
+depth="2"
 width="256"
 epoch="301"
 

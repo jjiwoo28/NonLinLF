@@ -7,10 +7,14 @@ from . import relu
 from . import siren
 from . import wire
 from . import wire2d
+from . import relu_skip
+from . import relu_skip2
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
               'relu': relu,
+              'relu_skip': relu_skip,
+              'relu_skip2': relu_skip2,
               'siren': siren,
               'wire': wire,
               'wire2d': wire2d}
@@ -18,7 +22,7 @@ model_dict = {'gauss': gauss,
 def get_INR(nonlin, in_features, hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,
             hidden_omega_0=30, scale=10, pos_encode=False,
-            sidelength=512, fn_samples=None, use_nyquist=True , wire_tunable=False):
+            sidelength=512, fn_samples=None, use_nyquist=True , wire_tunable=False , real_gabor = False):
     '''
         Function to get a class instance for a given type of
         implicit neural representation
@@ -62,7 +66,8 @@ def get_INR(nonlin, in_features, hidden_features, hidden_layers,
                             sidelength,
                             fn_samples,
                             use_nyquist,
-                            wire_tunable)
+                            wire_tunable,
+                            real_gabor)
     else:
         inr_mod = model_dict[nonlin]
         model = inr_mod.INR(in_features,

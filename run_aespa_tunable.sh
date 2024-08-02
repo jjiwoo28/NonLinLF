@@ -16,6 +16,7 @@ epoch="300"
 result_path="/data/result/${test_day}"
 #datasets=("bunny")  
 datasets=( "knights" "gem"  "bracelet" "chess" "flowers" "tarot")  
+datasets=( "knights" "gem"  "bracelet" "chess" "flowers" "tarot")  
 
 
 for dataset in "${datasets[@]}"; do

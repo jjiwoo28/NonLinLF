@@ -44,9 +44,12 @@ def parse_argument():
     parser.add_argument('--test_freq', type=int , default=10)
     parser.add_argument('--save_ckpt_path', type=int , default=100)
     parser.add_argument('--lr', type=float , default=5e-3)
+    parser.add_argument('--batch_size',type=int, default = 256*256,help='normalize input')
     
     parser.add_argument('--save_test_img', action='store_true')
     parser.add_argument('--wire_tunable', action='store_true')
+    parser.add_argument('--real_gabor', action='store_true')
+    parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
     parser.add_argument('--nonlin', type=str , default="relu")
@@ -79,7 +82,7 @@ def run(opt):
     # Network parameters
     hidden_layers = opt.depth      # Number of hidden layers in the MLP
     hidden_features = opt.width   # Number of hidden units per layer
-    maxpoints = 256*256     # Batch size
+    maxpoints = opt.batch_size     # Batch size
     
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
@@ -109,6 +112,7 @@ def run(opt):
     logger.set_metadata("dataset_name",dataset_name)
     logger.set_metadata("model_info",nonlin)
     logger.set_metadata("lr",opt.lr)
+    logger.set_metadata("batch_size",opt.batch_size)
     
     
     
@@ -184,8 +188,8 @@ def run(opt):
     st_depth_val     = -fdepth
     print("Stop loading...")
 
-    uvst_whole = torch.tensor(uvst_whole) 
-    color_whole = torch.tensor(color_whole)
+    uvst_whole = torch.tensor(uvst_whole).cuda() 
+    color_whole = torch.tensor(color_whole).cuda()
 #    uvst_whole_val = torch.tensor(uvst_whole_val) 
 #    color_whole_val = torch.tensor(color_whole_val)
   
@@ -217,7 +221,8 @@ def run(opt):
                     scale=sigma0,
                     pos_encode=posencode,
                     sidelength=sidelength,
-                    wire_tunable=opt.wire_tunable)
+                    wire_tunable=opt.wire_tunable,
+                    real_gabor=opt.real_gabor)
     
 
     ckpt_paths = glob.glob(os.path.join(ckpt_path,"*.pth"))
@@ -251,6 +256,11 @@ def run(opt):
     # Schedule to reduce lr to 0.1 times the initial rate in final epoch
     scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
     
+    if (opt.nonlin == 'relu') or (opt.nonlin =='relu_skip'):
+         scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
+
+        
+    
  #   x = torch.linspace(-1, 1, W)
  #   y = torch.linspace(-1, 1, H)
     
@@ -272,48 +282,91 @@ def run(opt):
     tbar = tqdm(range(niters))
     init_time = time.time()
     train_size = uvst_whole.shape[0]
-
+    
+    
+    # uvst_whole = torch.tensor(uvst_whole).cuda()
+    # color_whole = torch.tensor(color_whole).cuda()
+   
+        
+   
     for i in tbar:
         epoch = load_epoch + i + 1
 #        indices = torch.randperm(H*W)
         indices = torch.randperm(train_size)
-       
-        for b_idx in range(0, train_size, maxpoints):
-#            b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
-#            b_coords = coords[:, b_indices, ...].cuda()
-#            b_indices = b_indices.cuda()
-#            pixelvalues = model(b_coords)
 
-            b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
-            b_coords = uvst_whole[b_indices, ...].cuda()
-            b_indices = b_indices
-            pixelvalues = model(b_coords)
-            
-#            with torch.no_grad():
-#                rec[:, b_indices, :] = pixelvalues
-    
-#            loss = ((pixelvalues - gt_noisy[:, b_indices, :])**2).mean() 
-            loss = ((pixelvalues - color_whole[b_indices, :].cuda())**2).mean() 
-           
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
+        loop_start = torch.cuda.Event(enable_timing=True)
+        loop_end = torch.cuda.Event(enable_timing=True)
+
+        # 반복문 시작 전에 기록
+        loop_start.record()
         
-        #time_array[epoch] = time.time() - init_time
+        if not ((epoch %test_freq == 0) and opt.benchmark):    
+            for b_idx in range(0, train_size, maxpoints):
+                b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
+                b_coords = uvst_whole[b_indices, ...].cuda()
+                b_indices = b_indices
+                pixelvalues = model(b_coords)
+                
+
+                loss = ((pixelvalues - color_whole[b_indices, :].cuda())**2).mean() 
+            
+                optim.zero_grad()
+                loss.backward()
+                optim.step()
+        else:
+            avg_forward_time = 0
+            avg_backward_time = 0
+            whole_batch_iter = train_size//maxpoints
+            #print(f"whole_batch_iter : {whole_batch_iter}")
+            for b_idx in range(0, train_size, maxpoints):
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+
+                b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
+                b_coords = uvst_whole[b_indices, ...]
+                b_indices = b_indices  # 실질적인 연산이 없는 줄, 타이밍에 포함
+        
+                start.record()
+                pixelvalues = model(b_coords)
+                end.record()
+                torch.cuda.synchronize()
+                
+                avg_forward_time += (start.elapsed_time(end) / whole_batch_iter)
+
+    
+                loss = ((pixelvalues - color_whole[b_indices, :])**2).mean()
+            
+                start.record()
+                optim.zero_grad()
+                loss.backward()
+                optim.step()
+                end.record()
+                torch.cuda.synchronize()
+                avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
+            
+        # 반복문 끝난 후 시간 기록
+        loop_end.record()
+        torch.cuda.synchronize()
+        #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))
+        #print(f"avg_forward_time : {avg_forward_time}, avg_backward_time :  {avg_backward_time},whole_time : {loop_start.elapsed_time(loop_end)}")
+        logger.push_time(avg_forward_time , avg_backward_time ,loop_start.elapsed_time(loop_end),epoch)
+        
+    #time_array[epoch] = time.time() - init_time
 
         with torch.no_grad():
-#            pixelvalues_val = model(uvst_whole_val)
-#            mse_loss_array[epoch] = ((color_whole_val - pixelvalues_val)**2).mean().item()
+    #            pixelvalues_val = model(uvst_whole_val)
+    #            mse_loss_array[epoch] = ((color_whole_val - pixelvalues_val)**2).mean().item()
 
-#            mse_loss_array[epoch] = ((gt_noisy - rec)**2).mean().item()
-#            mse_array[epoch] = ((gt - rec)**2).mean().item()
-#            im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
-#            im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
-            if epoch % opt.save_ckpt_path == 0 :
-                cpt_path = ckpt_path + f"{epoch}.pth"
+    #            mse_loss_array[epoch] = ((gt_noisy - rec)**2).mean().item()
+    #            mse_array[epoch] = ((gt - rec)**2).mean().item()
+    #            im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
+    #            im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
+            if (epoch % opt.save_ckpt_path == 0) and (epoch != 0):
+                cpt_path = ckpt_path + f"ep{epoch}.pth"
                 torch.save(model.state_dict(), cpt_path)
 
             if epoch % test_freq ==0:
+                #print(f"epoch : {epoch}")
                 i = 0
                 count = 0
                 psnr_arr = []
@@ -321,6 +374,7 @@ def run(opt):
                     end = i+img_w*img_h
                     uvst = uvst_whole_val[i:end]
                     uvst = torch.from_numpy(uvst.astype(np.float32)).cuda()
+                    
                     
                     pred_color = model(uvst)
                     gt_color   = color_whole_val[i:end]
@@ -334,12 +388,12 @@ def run(opt):
 
                     pred_color = pred_color.cpu().numpy()
                     psnr = peak_signal_noise_ratio(gt_color, pred_color, data_range=1)
-#                   ssim = structural_similarity(gt_color.reshape((img_h,img_w,3)), pred_color.reshape((img_h,img_w,3)), data_range=pred_color.max() - pred_color.min(),multichannel=True)
-#                   lsp  = self.lpips(pred_img.cpu(),gt_img)
+        #                   ssim = structural_similarity(gt_color.reshape((img_h,img_w,3)), pred_color.reshape((img_h,img_w,3)), data_range=pred_color.max() - pred_color.min(),multichannel=True)
+        #                   lsp  = self.lpips(pred_img.cpu(),gt_img)
                     psnr_arr.append(psnr)
                     #print(psnr)
-#                   s.append(ssim)
-#                   l.append(np.asscalar(lsp.numpy()))
+        #                   s.append(ssim)
+        #                   l.append(np.asscalar(lsp.numpy()))
                     #breakpoint()
                     i = end
                     count+=1
@@ -352,29 +406,29 @@ def run(opt):
                 
                 logger.save_results()
 
-                for name, param in model.named_parameters():
-                    if 'omega_0' in name or 'scale_0' in name:
-                        print(f'Epoch {epoch}, {name}: {param.item()}')
+                # for name, param in model.named_parameters():
+                #     if 'omega_0' in name or 'scale_0' in name:
+                #         print(f'Epoch {epoch}, {name}: {param.item()}')
 
                 # cpt_path = os.path.join(ckpt_path,f"ep{epoch}.pth")
                 # torch.save(model.state_dict(), cpt_path)
                 
-#                psnrval = -10*torch.log10(mse_loss_array[epoch])
-#                tbar.set_description('%.1f'%psnrval)
-#                tbar.refresh()
+    #                psnrval = -10*torch.log10(mse_loss_array[epoch])
+    #                tbar.set_description('%.1f'%psnrval)
+    #                tbar.refresh()
         
         scheduler.step()
-        
-#        imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
             
-        #cv2.imshow('Reconstruction', imrec[..., ::-1])            
-        #cv2.waitKey(1)
+        
+    #        imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
+                
+            #cv2.imshow('Reconstruction', imrec[..., ::-1])            
+            #cv2.waitKey(1)
+        
+    #        if (mse_array[epoch] < best_mse) or (epoch == 0):
+    #            best_mse = mse_array[epoch]
+    #            best_img = imrec
     
-#        if (mse_array[epoch] < best_mse) or (epoch == 0):
-#            best_mse = mse_array[epoch]
-#            best_img = imrec
-    cpt_path = os.path.join(ckpt_path,f"{epoch}.pth")
-    torch.save(model.state_dict(), cpt_path)
 
    
 
