@@ -293,12 +293,12 @@ def run(opt):
         epoch = load_epoch + i + 1
 #        indices = torch.randperm(H*W)
         indices = torch.randperm(train_size)
+        if opt.benchmark:
+            loop_start = torch.cuda.Event(enable_timing=True)
+            loop_end = torch.cuda.Event(enable_timing=True)
 
-        loop_start = torch.cuda.Event(enable_timing=True)
-        loop_end = torch.cuda.Event(enable_timing=True)
-
-        # 반복문 시작 전에 기록
-        loop_start.record()
+            # 반복문 시작 전에 기록
+            loop_start.record()
         
         if not ((epoch %test_freq == 0) and opt.benchmark):    
             for b_idx in range(0, train_size, maxpoints):
@@ -344,12 +344,12 @@ def run(opt):
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
             
-        # 반복문 끝난 후 시간 기록
-        loop_end.record()
-        torch.cuda.synchronize()
-        #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))
-        #print(f"avg_forward_time : {avg_forward_time}, avg_backward_time :  {avg_backward_time},whole_time : {loop_start.elapsed_time(loop_end)}")
-        logger.push_time(avg_forward_time , avg_backward_time ,loop_start.elapsed_time(loop_end),epoch)
+        if opt.benchmark:# 반복문 끝난 후 시간 기록
+            loop_end.record()
+            torch.cuda.synchronize()
+            #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))
+            #print(f"avg_forward_time : {avg_forward_time}, avg_backward_time :  {avg_backward_time},whole_time : {loop_start.elapsed_time(loop_end)}")
+            logger.push_time(avg_forward_time , avg_backward_time ,loop_start.elapsed_time(loop_end),epoch)
         
     #time_array[epoch] = time.time() - init_time
 

@@ -1,0 +1,13 @@
+{
+    "path": "240802_relu_skips_d8w256_lr4e-4_exp_sc_batch8192_knights",
+    "depth": 8,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu_skip",
+    "lr": 0.0004,
+    "batch_size": 8192,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}
