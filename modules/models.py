@@ -9,12 +9,14 @@ from . import wire
 from . import wire2d
 from . import relu_skip
 from . import relu_skip2
+from . import relu_decom
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
               'relu': relu,
               'relu_skip': relu_skip,
               'relu_skip2': relu_skip2,
+              'relu_decom': relu_decom,
               'siren': siren,
               'wire': wire,
               'wire2d': wire2d}

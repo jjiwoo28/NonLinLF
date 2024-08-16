@@ -188,6 +188,8 @@ def run(opt):
     st_depth_val     = -fdepth
     print("Stop loading...")
 
+    uvst_whole = torch.tensor(uvst_whole).cuda() 
+    color_whole = torch.tensor(color_whole).cuda()
 #    uvst_whole_val = torch.tensor(uvst_whole_val) 
 #    color_whole_val = torch.tensor(color_whole_val)
   
@@ -258,8 +260,6 @@ def run(opt):
          scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
 
         
-    uvst_whole = torch.tensor(uvst_whole).cuda() 
-    color_whole = torch.tensor(color_whole).cuda()
     
  #   x = torch.linspace(-1, 1, W)
  #   y = torch.linspace(-1, 1, H)
@@ -283,13 +283,16 @@ def run(opt):
     init_time = time.time()
     train_size = uvst_whole.shape[0]
     
-
+    
+    # uvst_whole = torch.tensor(uvst_whole).cuda()
+    # color_whole = torch.tensor(color_whole).cuda()
+   
         
    
-    indices = torch.randperm(train_size)
     for i in tbar:
         epoch = load_epoch + i + 1
 #        indices = torch.randperm(H*W)
+        indices = torch.randperm(train_size)
         if opt.benchmark:
             loop_start = torch.cuda.Event(enable_timing=True)
             loop_end = torch.cuda.Event(enable_timing=True)
@@ -300,12 +303,12 @@ def run(opt):
         if not ((epoch %test_freq == 0) and opt.benchmark):    
             for b_idx in range(0, train_size, maxpoints):
                 b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
-                b_coords = uvst_whole[b_indices, ...]
+                b_coords = uvst_whole[b_indices, ...].cuda()
                 b_indices = b_indices
                 pixelvalues = model(b_coords)
                 
 
-                loss = ((pixelvalues - color_whole[b_indices, :])**2).mean() 
+                loss = ((pixelvalues - color_whole[b_indices, :].cuda())**2).mean() 
             
                 optim.zero_grad()
                 loss.backward()

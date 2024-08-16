@@ -30,6 +30,9 @@ from modules import models
 from modules import utils
 
 from logger import PSNRLogger
+
+from decomposer import get_mgrid
+
 def parse_argument():
     
     parser = argparse.ArgumentParser()
@@ -162,8 +165,12 @@ def run(opt):
         print(f"Width: {w}, Height: {h}")
     else:
         print("No image files found in the directory.")
-        
 
+    number_of_val_imges = 9
+    number_of_train_images = len(image_files) - number_of_val_imges
+
+        
+    #breakpoint()
     # center color
     color_whole  = np.load(f"{data_root}/rgb{split}.npy")
     trans        = np.load(f"{data_root}/trans{split}.npy")
@@ -172,7 +179,7 @@ def run(opt):
     render_pose  = np.load(f"{data_root}/Render_pose{split}.npy")#render path spiral
     st_depth     = -fdepth
 
-    uvst_whole  = np.concatenate([uvst_whole]*rep, axis=0)
+    #uvst_whole  = np.concatenate([uvst_whole]*rep, axis=0)
     color_whole = np.concatenate([color_whole]*rep, axis=0)
 
     split='val'
@@ -186,7 +193,138 @@ def run(opt):
     fdepth_val       = np.load(f"{data_root}/fdepth{split}.npy") # center object
     render_pose_val  = np.load(f"{data_root}/Render_pose{split}.npy")#render path spiral
     st_depth_val     = -fdepth
+
+    
+
+    uvst_whole_val  = np.concatenate([uvst_whole_val]*rep, axis=0)
+    color_whole_val = np.concatenate([color_whole_val]*rep, axis=0)
     print("Stop loading...")
+
+    if color_whole.size == number_of_train_images * h * w * 3:
+        color_whole = color_whole.reshape((number_of_train_images, h, w, 3))
+        print("Reshaped array:", color_whole.shape)
+    else:
+        print("요소 수가 맞지 않아 배열을 해당 형태로 변환할 수 없습니다.")
+
+    #breakpoint()
+
+    if color_whole_val.size == number_of_val_imges * h * w * 3:
+        color_whole_val = color_whole_val.reshape((number_of_val_imges, h, w, 3))
+        print("Reshaped array:", color_whole_val.shape)
+    else:
+        print("요소 수가 맞지 않아 배열을 해당 형태로 변환할 수 없습니다.")
+
+    image_axis_num = 17
+
+    img_whole_num =289
+    temp_whole = []
+    val_idx = [72, 76, 80, 140, 144, 148, 208, 212, 216]
+    j = 0
+    i = 0
+    for idx in range(img_whole_num):
+        if idx in val_idx:
+            temp_whole.append(color_whole_val[i,:,:,:])
+            i+=1
+        else:
+            temp_whole.append(color_whole[j,:,:,:])
+            j+=1
+
+    color_whole = np.array(temp_whole)
+
+
+
+    
+
+    #color_whole = np.concatenate([color_whole , color_whole_val], axis=0)
+
+    color_whole = color_whole.reshape((image_axis_num,image_axis_num, h, w, 3))
+
+    
+    if nonlin == 'relu_decom':
+        team1 = [0,1]
+        team2 = [2,3]
+
+        team1_shape = 1
+        team2_shape = 1
+        for s in team1:
+            team1_shape*=color_whole.shape[s]
+
+        for s in team2:
+            team2_shape*=color_whole.shape[s]
+
+        mgrid_team1 = get_mgrid((color_whole.shape[0], color_whole.shape[1]), dim=2).unsqueeze(1).cuda()
+        mgrid_team2 = get_mgrid((color_whole.shape[2], color_whole.shape[3]), dim=2).unsqueeze(0).cuda()
+
+        N_samples = 256*256
+
+    # prefix = 1
+    # train_val_index = [4,8,12]
+    # for i in train_val_index:
+    #     for j in train_val_index:
+    #         img_arr = (color_whole[i,j,:,:,:]*255).astype(np.uint8)
+
+    #         img = Image.fromarray(img_arr)
+    #         img.save(f'image_train_val_{prefix}.png')
+    #         prefix+=1
+            
+
+    # breakpoint()
+    color_whole = color_whole.reshape((image_axis_num*image_axis_num*h*w, -1))
+    color_whole = torch.tensor(color_whole).cuda()
+
+    def sampling_val(xy_idx ,device='cuda'):
+        coord_id1 = np.array([xy_idx]) 
+        coord_id2 = np.arange(team2_shape)
+
+        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
+        
+        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
+        sampled_data = color_whole[coord_id,:]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+
+        coord_1 = mgrid_team1[None , coord_id1 , : ,:]
+        coord_2 = mgrid_team2[None , : , : ,:]
+
+        return [coord_1 ,coord_2], sampled_data
+
+
+    # cs ,  img_val = sampling_batch(72)
+    # img_arr = (np.array(img_val.cpu())*255).astype(np.uint8)
+
+    # img = Image.fromarray(img_arr)
+    # img.save(f'sampling_val_test.png')
+    #breakpoint()
+
+    def sampling_random(device='cuda'):
+        num = np.random.randint(1, round(team1_shape-1))
+        
+        coord_id1 = torch.randperm(team1_shape, device=device)[:num]
+        coord_id2 = torch.randint(0, team2_shape, (round(N_samples/num),), device=device)
+        
+        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
+        
+        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
+        sampled_data = color_whole[coord_id,:]
+        
+        coord_1 = mgrid_team1[None ,coord_id1 , : , :]
+        coord_2 = mgrid_team2[None, : ,coord_id2 , :]
+
+        return  [coord_1 ,coord_2], sampled_data
+    
+    #coords , data  = sampling()
+
+    def save_images(array, prefix='image'):
+        num_images, height, width, _ = array.shape
+        for i in range(num_images):
+            # 각 이미지의 RGB 값을 0~255 범위로 변환
+            img_array = (array[i] * 255).astype(np.uint8)
+            # 이미지 생성
+            img = Image.fromarray(img_array)
+            # 파일명 지정 및 이미지 저장
+            img.save(f'{prefix}_{i+1}.png')
+        #uvst_whole = torch.tensor(uvst_whole).cuda() 
+
+    save_images(color_whole_val)
 
 #    uvst_whole_val = torch.tensor(uvst_whole_val) 
 #    color_whole_val = torch.tensor(color_whole_val)
@@ -258,8 +396,6 @@ def run(opt):
          scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
 
         
-    uvst_whole = torch.tensor(uvst_whole).cuda() 
-    color_whole = torch.tensor(color_whole).cuda()
     
  #   x = torch.linspace(-1, 1, W)
  #   y = torch.linspace(-1, 1, H)
@@ -281,15 +417,18 @@ def run(opt):
     
     tbar = tqdm(range(niters))
     init_time = time.time()
-    train_size = uvst_whole.shape[0]
+    train_size = color_whole.shape[0]
     
-
-        
+    
+    # uvst_whole = torch.tensor(uvst_whole).cuda()
+    # color_whole = torch.tensor(color_whole).cuda()
+    #breakpoint()
+    epoch_per_batch = train_size//N_samples
    
-    indices = torch.randperm(train_size)
     for i in tbar:
         epoch = load_epoch + i + 1
 #        indices = torch.randperm(H*W)
+        #indices = torch.randperm(train_size)
         if opt.benchmark:
             loop_start = torch.cuda.Event(enable_timing=True)
             loop_end = torch.cuda.Event(enable_timing=True)
@@ -297,19 +436,22 @@ def run(opt):
             # 반복문 시작 전에 기록
             loop_start.record()
         
-        if not ((epoch %test_freq == 0) and opt.benchmark):    
-            for b_idx in range(0, train_size, maxpoints):
-                b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
-                b_coords = uvst_whole[b_indices, ...]
-                b_indices = b_indices
-                pixelvalues = model(b_coords)
-                
+        #if True:
+        if not ((epoch %test_freq == 0) and opt.benchmark):
+            for i in range(epoch_per_batch):
 
-                loss = ((pixelvalues - color_whole[b_indices, :])**2).mean() 
-            
+                #breakpoint()
+                coords , data  = sampling_random()
+                output = model(coords)
+                #breakpoint()
+                loss = ((output - data)**2).mean()
+
                 optim.zero_grad()
                 loss.backward()
                 optim.step()
+               
+
+
         else:
             avg_forward_time = 0
             avg_backward_time = 0
@@ -319,19 +461,20 @@ def run(opt):
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
 
-                b_indices = indices[b_idx:min(train_size, b_idx+maxpoints)]
-                b_coords = uvst_whole[b_indices, ...]
-                b_indices = b_indices  # 실질적인 연산이 없는 줄, 타이밍에 포함
-        
+                                #breakpoint()
+                coords , data  = sampling_random()
                 start.record()
-                pixelvalues = model(b_coords)
+                output = model(coords)
                 end.record()
                 torch.cuda.synchronize()
+
+                loss = ((output - data)**2).mean()
+
+      
                 
                 avg_forward_time += (start.elapsed_time(end) / whole_batch_iter)
 
     
-                loss = ((pixelvalues - color_whole[b_indices, :])**2).mean()
             
                 start.record()
                 optim.zero_grad()
@@ -367,15 +510,13 @@ def run(opt):
                 i = 0
                 count = 0
                 psnr_arr = []
-                while i < uvst_whole_val.shape[0]:
-                    end = i+img_w*img_h
-                    uvst = uvst_whole_val[i:end]
-                    uvst = torch.from_numpy(uvst.astype(np.float32)).cuda()
-                    
-                    
-                    pred_color = model(uvst)
-                    gt_color   = color_whole_val[i:end]
-                    
+                val_idx = [72, 76, 80, 140, 144, 148, 208, 212, 216]
+
+                for idx in val_idx:
+                    coords , gt_color   = sampling_val(idx)
+                    pred_color = model(coords)
+
+                    #breakpoint()
                     pred_img = pred_color.reshape((img_h,img_w,3)).permute((2,0,1))
                     gt_img   = torch.tensor(gt_color).reshape((img_h,img_w,3)).permute((2,0,1))
 
@@ -384,6 +525,7 @@ def run(opt):
                         torchvision.utils.save_image(gt_img,f"{test_path}/gt_{count}.png")
 
                     pred_color = pred_color.cpu().numpy()
+                    gt_color = gt_color.cpu().numpy()
                     psnr = peak_signal_noise_ratio(gt_color, pred_color, data_range=1)
         #                   ssim = structural_similarity(gt_color.reshape((img_h,img_w,3)), pred_color.reshape((img_h,img_w,3)), data_range=pred_color.max() - pred_color.min(),multichannel=True)
         #                   lsp  = self.lpips(pred_img.cpu(),gt_img)

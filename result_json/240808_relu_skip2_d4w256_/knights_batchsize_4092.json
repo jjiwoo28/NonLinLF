@@ -1,0 +1,15 @@
+{
+    "path": "knights_batchsize_4092",
+    "depth": 8,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu_skip2",
+    "lr": 0.0004,
+    "batch_size": 4092,
+    "result": {
+        "0": 0,
+        "10": 28.547455479239254,
+        "20": 30.77883050716111
+    },
+    "result_time": {}
+}
