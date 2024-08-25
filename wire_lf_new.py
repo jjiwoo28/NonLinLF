@@ -43,7 +43,7 @@ def parse_argument():
     
     parser.add_argument('--test_freq', type=int , default=10)
     parser.add_argument('--save_ckpt_path', type=int , default=100)
-    parser.add_argument('--lr', type=float , default=5e-3)
+    parser.add_argument('--lr', type=float , default=5e-3) 
     parser.add_argument('--batch_size',type=int, default = 256*256,help='normalize input')
     
     parser.add_argument('--save_test_img', action='store_true')
@@ -52,7 +52,13 @@ def parse_argument():
     parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
+    parser.add_argument('--lr_preset', action='store_true')
+    parser.add_argument('--lr_batch_preset', action='store_true')
+    
+    
     parser.add_argument('--nonlin', type=str , default="relu")
+    parser.add_argument('--omega', type=int , default=5)
+    parser.add_argument('--sigma', type=int , default=5)
 
     parser.add_argument("--gpu", default="0", type=str, help="Comma-separated list of GPU(s) to use.")
 
@@ -66,7 +72,6 @@ def run(opt):
 
     nonlin = opt.nonlin            # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     niters = opt.whole_epoch               # Number of SGD iterations
-    learning_rate = opt.lr       # Learning rate. 
     
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3 
@@ -76,13 +81,13 @@ def run(opt):
     
     # Gabor filter constants.
     # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
-    omega0 = 5.0           # Frequency of sinusoid
-    sigma0 = 5.0           # Sigma of Gaussian
+    omega0 = opt.omega           # Frequency of sinusoid
+    sigma0 = opt.sigma           # Sigma of Gaussian
     
     # Network parameters
     hidden_layers = opt.depth      # Number of hidden layers in the MLP
     hidden_features = opt.width   # Number of hidden units per layer
-    maxpoints = opt.batch_size     # Batch size
+         # Batch size
     
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
@@ -94,6 +99,42 @@ def run(opt):
 #    im_noisy = utils.measure(im, noise_snr, tau)
 
 
+    if opt.lr_batch_preset:
+        if opt.nonlin =="relu" or opt.nonlin =="relu_skip" or opt.nonlin =="relu_skip2":
+            learning_rate =0.0005
+            maxpoints = 8192
+            
+        elif opt.nonlin =="wire": 
+            if opt.depth == 8:
+                learning_rate =0.001
+            else:
+                learning_rate =0.005
+            maxpoints = 65536
+                
+            
+        elif opt.nonlin =="siren": 
+            learning_rate =0.0005
+            maxpoints = 8192
+            
+        elif opt.nonlin =="gauss": 
+            learning_rate =0.005
+            maxpoints = 65536
+            
+        elif opt.nonlin =="finer": 
+            learning_rate =0.0005
+            maxpoints = 65536
+            
+            
+            
+            
+    else:
+        learning_rate = opt.lr
+        maxpoints = opt.batch_size       
+    
+    print(f"learning_rate : {learning_rate}")
+    print(f"batch_size : {maxpoints}")
+                
+        
     # args
     norm_fac = 1
     st_norm_fac = 1
@@ -111,8 +152,10 @@ def run(opt):
     dataset_name = opt.data_dir.split('/')[-1]
     logger.set_metadata("dataset_name",dataset_name)
     logger.set_metadata("model_info",nonlin)
-    logger.set_metadata("lr",opt.lr)
+    logger.set_metadata("lr",learning_rate)
     logger.set_metadata("batch_size",opt.batch_size)
+    logger.set_metadata("omega",opt.omega)
+    logger.set_metadata("omega",opt.sigma)
     
     
     
@@ -284,7 +327,7 @@ def run(opt):
     train_size = uvst_whole.shape[0]
     
 
-        
+    divergence_count = 0
    
     indices = torch.randperm(train_size)
     for i in tbar:
@@ -399,7 +442,20 @@ def run(opt):
                 whole_psnr = 0
                 for psnr in psnr_arr:
                     whole_psnr += psnr
-                logger.push(whole_psnr/count , epoch)
+                arg_psnr = whole_psnr/count
+                logger.push(arg_psnr, epoch)
+                print(f"epoch : {epoch} , PSNR : {psnr_arr}")
+                print(f"epoch : {epoch} , AVG PSNR : {arg_psnr}")
+                
+                if (epoch >= 20) and (arg_psnr <= 19):
+                    divergence_count =+1
+                    
+                
+                
+                if divergence_count >= 5:
+                    logger.set_metadata("isDivergence", "true")
+                    logger.save_results()
+                    sys.exit("Program terminated due to divergence condition.")
                 
                 logger.save_results()
 

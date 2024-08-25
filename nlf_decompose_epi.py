@@ -56,7 +56,6 @@ def parse_argument():
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
     parser.add_argument('--nonlin', type=str , default="relu")
-    
 
     parser.add_argument("--gpu", default="0", type=str, help="Comma-separated list of GPU(s) to use.")
 
@@ -237,10 +236,11 @@ def run(opt):
     
 
     #color_whole = np.concatenate([color_whole , color_whole_val], axis=0)
-
+    #breakpoint()
     color_whole = color_whole.reshape((image_axis_num,image_axis_num, h, w, 3))
-
     
+    color_whole = color_whole.transpose(0, 2, 1, 3, 4)
+
 
     team1 = [0,1]
     team2 = [2,3]
@@ -269,7 +269,6 @@ def run(opt):
     #         prefix+=1
             
 
-    # breakpoint()
     color_whole = color_whole.reshape((image_axis_num*image_axis_num*h*w, -1))
     color_whole = torch.tensor(color_whole).cuda()
 
@@ -288,13 +287,34 @@ def run(opt):
 
         return [coord_1 ,coord_2], sampled_data
 
+    def sampling_val_for_epi(xy_idx ,device='cuda'):
+        x_idx = xy_idx % 17
+        y_idx = xy_idx // 17
+        coord_id1 = np.arange(h) + x_idx*h
+        coord_id2 = np.arange(w) + y_idx*w
+        
+        
+        # coord_id1 = np.array([xy_idx]) 
+        # coord_id2 = np.arange(team2_shape)
 
-    # cs ,  img_val = sampling_batch(72)
+        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
+        
+        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
+        sampled_data = color_whole[coord_id,:]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+
+        coord_1 = mgrid_team1[None , coord_id1 , : ,:]
+        coord_2 = mgrid_team2[None , : , coord_id2 ,:]
+
+        return [coord_1 ,coord_2], sampled_data
+
+    #breakpoint()
+    # cs ,  img_val = sampling_val_for_epi(72)
     # img_arr = (np.array(img_val.cpu())*255).astype(np.uint8)
 
     # img = Image.fromarray(img_arr)
-    # img.save(f'sampling_val_test.png')
-    #breakpoint()
+    # img.save(f'sampling_val_for_epi_test11111.png')
+    # #breakpoint()
 
     def sampling_random(device='cuda'):
         num = np.random.randint(1, round(team1_shape-1))
@@ -312,7 +332,11 @@ def run(opt):
 
         return  [coord_1 ,coord_2], sampled_data
     
-    #coords , data  = sampling()
+    # coords , data  = sampling_random()
+    # coords_val , data_val  = sampling_val(100)
+    # #breakpoint()
+    # coords_val , data_val  = sampling_val_for_epi(72)
+    
 
     def save_images(array, prefix='image'):
         num_images, height, width, _ = array.shape
@@ -487,7 +511,7 @@ def run(opt):
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
             
-        if opt.benchmark:# 반복문 끝난 후 시간 기록
+        if  ((epoch %test_freq == 0) and opt.benchmark):# 반복문 끝난 후 시간 기록
             loop_end.record()
             torch.cuda.synchronize()
             #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))
@@ -516,7 +540,7 @@ def run(opt):
                 val_idx = [72, 76, 80, 140, 144, 148, 208, 212, 216]
 
                 for idx in val_idx:
-                    coords , gt_color   = sampling_val(idx)
+                    coords , gt_color   = sampling_val_for_epi(idx)
                     pred_color = model(coords)
 
                     #breakpoint()

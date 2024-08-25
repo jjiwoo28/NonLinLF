@@ -1,0 +1,20 @@
+{
+    "path": "240816_decom_wire_2f2w256_knights",
+    "depth": 2,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "wire_decom",
+    "lr": 0.005,
+    "batch_size": 65536,
+    "result_time": {
+        "1": {
+            "forward": 24.000304406902007,
+            "backward": 44.692486145917016,
+            "per_epoch_whole": 84507.4375
+        }
+    },
+    "result": {
+        "0": 0,
+        "1": 12.103548796314385
+    }
+}

@@ -10,6 +10,8 @@ from . import wire2d
 from . import relu_skip
 from . import relu_skip2
 from . import relu_decom
+from . import wire_decom
+from . import finer
 
 model_dict = {'gauss': gauss,
               'mfn': mfn,
@@ -19,7 +21,9 @@ model_dict = {'gauss': gauss,
               'relu_decom': relu_decom,
               'siren': siren,
               'wire': wire,
-              'wire2d': wire2d}
+              'wire_decom': wire_decom,
+              'wire2d': wire2d,
+              'finer' : finer}
 
 def get_INR(nonlin, in_features, hidden_features, hidden_layers,
             out_features, outermost_linear=True, first_omega_0=30,

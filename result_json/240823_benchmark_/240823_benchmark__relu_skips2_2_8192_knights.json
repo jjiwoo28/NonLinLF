@@ -1,0 +1,13 @@
+{
+    "path": "240823_benchmark__relu_skips2_2_8192_knights",
+    "depth": 2,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu_skips2",
+    "lr": 0.005,
+    "batch_size": 8192,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

@@ -26,7 +26,7 @@ import torchvision
 from torch.optim.lr_scheduler import LambdaLR
 from pytorch_msssim import ssim
 
-from modules import models
+from modules import models,models_decom
 from modules import utils
 
 from logger import PSNRLogger
@@ -36,8 +36,13 @@ from decomposer import get_mgrid
 def parse_argument():
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--depth', type=int, default=8 )
+    parser.add_argument('--depth', type=int, default=2 )
     parser.add_argument('--width', type=int, default=256 )
+    
+    parser.add_argument('--coord_depth', type=int, default=2 )
+    parser.add_argument('--coord_width', type=int, default=256 )
+    parser.add_argument('--R', type=int, default=1 )
+    
     
     parser.add_argument('--whole_epoch', type=int, default=100 )
 
@@ -55,9 +60,12 @@ def parse_argument():
     parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
-    parser.add_argument('--nonlin', type=str , default="relu")
+    parser.add_argument('--lr_batch_preset', action='store_true')
     
-
+    parser.add_argument('--nonlin', type=str , default="relu")
+    parser.add_argument('--decom_dim', type=str , default="uv")
+    parser.add_argument('--omega', type=int , default=5)
+    parser.add_argument('--sigma', type=int , default=5)
     parser.add_argument("--gpu", default="0", type=str, help="Comma-separated list of GPU(s) to use.")
 
     opt = parser.parse_args()
@@ -70,7 +78,6 @@ def run(opt):
 
     nonlin = opt.nonlin            # type of nonlinearity, 'wire', 'siren', 'mfn', 'relu', 'posenc', 'gauss'
     niters = opt.whole_epoch               # Number of SGD iterations
-    learning_rate = opt.lr       # Learning rate. 
     
     # WIRE works best at 5e-3 to 2e-2, Gauss and SIREN at 1e-3 - 2e-3,
     # MFN at 1e-2 - 5e-2, and positional encoding at 5e-4 to 1e-3 
@@ -80,13 +87,12 @@ def run(opt):
     
     # Gabor filter constants.
     # We suggest omega0 = 4 and sigma0 = 4 for denoising, and omega0=20, sigma0=30 for image representation
-    omega0 = 5.0           # Frequency of sinusoid
-    sigma0 = 5.0           # Sigma of Gaussian
+    omega0 = opt.omega           # Frequency of sinusoid
+    sigma0 = opt.sigma           # Sigma of Gaussian
     
     # Network parameters
     hidden_layers = opt.depth      # Number of hidden layers in the MLP
     hidden_features = opt.width   # Number of hidden units per layer
-    maxpoints = opt.batch_size     # Batch size
     
     # Read image and scale. A scale of 0.5 for parrot image ensures that it
     # fits in a 12GB GPU
@@ -96,7 +102,40 @@ def run(opt):
     
     # Create a noisy image
 #    im_noisy = utils.measure(im, noise_snr, tau)
-
+    if opt.lr_batch_preset:
+        if opt.nonlin =="relu" or opt.nonlin =="relu_skip" or opt.nonlin =="relu_skip2":
+            learning_rate =0.0005
+            maxpoints = 8192
+            
+        elif opt.nonlin =="wire": 
+            if opt.depth == 8:
+                learning_rate =0.001
+            else:
+                learning_rate =0.005
+            maxpoints = 65536
+                
+            
+        elif opt.nonlin =="siren": 
+            learning_rate =0.0005
+            maxpoints = 8192
+            
+        elif opt.nonlin =="gauss": 
+            learning_rate =0.005
+            maxpoints = 65536
+            
+        elif opt.nonlin =="finer": 
+            learning_rate =0.0005
+            maxpoints = 65536
+            
+            
+            
+            
+    else:
+        learning_rate = opt.lr
+        maxpoints = opt.batch_size       
+    
+    print(f"learning_rate : {learning_rate}")
+    print(f"batch_size : {maxpoints}")
 
     # args
     norm_fac = 1
@@ -112,12 +151,19 @@ def run(opt):
     logger = PSNRLogger(logger_path , opt.exp_dir.split('/')[-1])
     logger.set_metadata("depth",opt.depth)
     logger.set_metadata("width",opt.width)
+    logger.set_metadata("coord_depth",opt.coord_depth)
+    logger.set_metadata("coord_width",opt.coord_width)
     dataset_name = opt.data_dir.split('/')[-1]
     logger.set_metadata("dataset_name",dataset_name)
     logger.set_metadata("model_info",nonlin)
-    logger.set_metadata("lr",opt.lr)
+    logger.set_metadata("lr",learning_rate)
     logger.set_metadata("batch_size",opt.batch_size)
+    logger.set_metadata("omega",opt.omega)
+    logger.set_metadata("sigma",opt.sigma)
     
+    logger.set_metadata("decom_dim", opt.decom_dim)
+    logger.set_metadata("R", opt.R)
+
     
     
     logger.load_results()
@@ -237,10 +283,15 @@ def run(opt):
     
 
     #color_whole = np.concatenate([color_whole , color_whole_val], axis=0)
-
+    #breakpoint()
     color_whole = color_whole.reshape((image_axis_num,image_axis_num, h, w, 3))
-
     
+    if opt.decom_dim == "uv":
+        color_whole = color_whole.transpose(0, 1, 2, 3, 4)
+    elif opt.decom_dim == "us":
+        color_whole = color_whole.transpose(0, 2, 1, 3, 4)
+        
+
 
     team1 = [0,1]
     team2 = [2,3]
@@ -256,7 +307,7 @@ def run(opt):
     mgrid_team1 = get_mgrid((color_whole.shape[0], color_whole.shape[1]), dim=2).unsqueeze(1).cuda()
     mgrid_team2 = get_mgrid((color_whole.shape[2], color_whole.shape[3]), dim=2).unsqueeze(0).cuda()
 
-    N_samples = 256*256
+    N_samples = opt.batch_size
 
     # prefix = 1
     # train_val_index = [4,8,12]
@@ -269,11 +320,10 @@ def run(opt):
     #         prefix+=1
             
 
-    # breakpoint()
     color_whole = color_whole.reshape((image_axis_num*image_axis_num*h*w, -1))
     color_whole = torch.tensor(color_whole).cuda()
 
-    def sampling_val(xy_idx ,device='cuda'):
+    def sampling_val_uv(xy_idx ,device='cuda'):
         coord_id1 = np.array([xy_idx]) 
         coord_id2 = np.arange(team2_shape)
 
@@ -288,13 +338,41 @@ def run(opt):
 
         return [coord_1 ,coord_2], sampled_data
 
+    def sampling_val_us(xy_idx ,device='cuda'):
+        x_idx = xy_idx % 17
+        y_idx = xy_idx // 17
+        coord_id1 = np.arange(h) + x_idx*h
+        coord_id2 = np.arange(w) + y_idx*w
+        
+        
+        # coord_id1 = np.array([xy_idx]) 
+        # coord_id2 = np.arange(team2_shape)
 
-    # cs ,  img_val = sampling_batch(72)
+        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
+        
+        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
+        sampled_data = color_whole[coord_id,:]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+
+        coord_1 = mgrid_team1[None , coord_id1 , : ,:]
+        coord_2 = mgrid_team2[None , : , coord_id2 ,:]
+
+        return [coord_1 ,coord_2], sampled_data
+
+    sampling_functions = {
+        "uv": sampling_val_uv,
+        "us": sampling_val_us
+    }
+    
+    sampling_val = sampling_functions[opt.decom_dim]
+        
+    #breakpoint()
+    # cs ,  img_val = sampling_val_for_epi(72)
     # img_arr = (np.array(img_val.cpu())*255).astype(np.uint8)
 
     # img = Image.fromarray(img_arr)
-    # img.save(f'sampling_val_test.png')
-    #breakpoint()
+    # img.save(f'sampling_val_for_epi_test11111.png')
+    # #breakpoint()
 
     def sampling_random(device='cuda'):
         num = np.random.randint(1, round(team1_shape-1))
@@ -312,7 +390,11 @@ def run(opt):
 
         return  [coord_1 ,coord_2], sampled_data
     
-    #coords , data  = sampling()
+    # coords , data  = sampling_random()
+    # coords_val , data_val  = sampling_val(100)
+    # #breakpoint()
+    # coords_val , data_val  = sampling_val_for_epi(72)
+    
 
     def save_images(array, prefix='image'):
         num_images, height, width, _ = array.shape
@@ -347,19 +429,38 @@ def run(opt):
         sidelength = 512
         
 
-    model = models.get_INR(
-                    nonlin=nonlin,
-                    in_features=4,
-                    out_features=3, 
-                    hidden_features=hidden_features,
-                    hidden_layers=hidden_layers,
-                    first_omega_0=omega0,
-                    hidden_omega_0=omega0,
-                    scale=sigma0,
-                    pos_encode=posencode,
-                    sidelength=sidelength,
-                    wire_tunable=opt.wire_tunable,
-                    real_gabor=opt.real_gabor)
+    # model = models.get_INR(
+    #                 nonlin=nonlin,
+    #                 in_features=4,
+    #                 out_features=3, 
+    #                 hidden_features=hidden_features,
+    #                 hidden_layers=hidden_layers,
+    #                 first_omega_0=omega0,
+    #                 hidden_omega_0=omega0,
+    #                 scale=sigma0,
+    #                 pos_encode=posencode,
+    #                 sidelength=sidelength,
+    #                 wire_tunable=opt.wire_tunable,
+    #                 real_gabor=opt.real_gabor)
+    
+    model = models_decom.get_decom_INR(in_features=4, 
+                                    out_features=3, 
+                                    coord_hidden_features = opt.coord_width,
+                                    coord_hidden_layers= 1,
+                                    after_hidden_features= opt.coord_width, 
+                                    after_hidden_layers = opt.coord_depth, 
+                                    before_hidden_features= opt.width, 
+                                    before_hidden_layers = opt.depth, 
+                                    outermost_linear=True, 
+                                    first_omega_0=omega0,
+                                    hidden_omega_0=omega0,
+                                    
+                                    scale=sigma0,
+                                    split_input_nonlin1=opt.nonlin,
+                                    split_input_nonlin2=opt.nonlin,
+                                    after_nonlin=opt.nonlin,
+                                    before_nonlin=opt.nonlin,
+                                    R = opt.R)
     
 
     ckpt_paths = glob.glob(os.path.join(ckpt_path,"*.pth"))
@@ -487,7 +588,7 @@ def run(opt):
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
             
-        if opt.benchmark:# 반복문 끝난 후 시간 기록
+        if  ((epoch %test_freq == 0) and opt.benchmark):# 반복문 끝난 후 시간 기록
             loop_end.record()
             torch.cuda.synchronize()
             #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))

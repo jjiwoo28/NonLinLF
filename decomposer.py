@@ -71,20 +71,21 @@ def combine_grids(grid_uv, grid_st):
     return combined_grid
 
 # 사용 예제
-sidelen1 = (512,512)  # 첫 번째 2D 그리드의 크기
-sidelen2 = (1, 1)   # 두 번째 2D 그리드의 크기
+if __name__ == "__main__":
+    sidelen1 = (512,512)  # 첫 번째 2D 그리드의 크기
+    sidelen2 = (1, 1)   # 두 번째 2D 그리드의 크기
 
-grid_uv, grid_st = generate_2d_grids(sidelen1, sidelen2)
+    grid_uv, grid_st = generate_2d_grids(sidelen1, sidelen2)
 
-# 두 그리드 결합
-combined_grid = combine_grids(grid_uv, grid_st)
+    # 두 그리드 결합
+    combined_grid = combine_grids(grid_uv, grid_st)
 
-# 결과 출력
-print("첫 번째 2D 그리드 (u, v) 형태:")
-print(f"그리드 형태: {grid_uv.shape}\n")
+    # 결과 출력
+    print("첫 번째 2D 그리드 (u, v) 형태:")
+    print(f"그리드 형태: {grid_uv.shape}\n")
 
-print("두 번째 2D 그리드 (s, t) 형태:")
-print(f"그리드 형태: {grid_st.shape}\n")
+    print("두 번째 2D 그리드 (s, t) 형태:")
+    print(f"그리드 형태: {grid_st.shape}\n")
 
-print("결합된 그리드 형태:")
-print(f"그리드 형태: {combined_grid.shape}\n")
+    print("결합된 그리드 형태:")
+    print(f"그리드 형태: {combined_grid.shape}\n")

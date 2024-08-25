@@ -1,0 +1,13 @@
+{
+    "path": "240817_debug_wire_2f2w256_2_gem",
+    "depth": 2,
+    "width": 256,
+    "dataset_name": "gem",
+    "model_info": "wire_decom",
+    "lr": 0.005,
+    "batch_size": 65536,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}
