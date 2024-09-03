@@ -1,0 +1,50 @@
+{
+    "path": "240827_decom_debug_3decom_finer_d2_w256_cd2_cd256_R2_8192_decom_dim_uv_lr0.001_gem",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "gem",
+    "model_info": "finer",
+    "lr": 0.001,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 2,
+    "result_time": {
+        "1": {
+            "forward": 1.2170587330970692,
+            "backward": 1.693390573941026,
+            "per_epoch_whole": 34314.875
+        },
+        "2": {
+            "forward": 1.1235468560591286,
+            "backward": 1.7091629347552364,
+            "per_epoch_whole": 33075.640625
+        },
+        "3": {
+            "forward": 1.0986839311311263,
+            "backward": 1.692391413683986,
+            "per_epoch_whole": 33440.20703125
+        },
+        "4": {
+            "forward": 1.1207889507953264,
+            "backward": 1.6958453106117133,
+            "per_epoch_whole": 33721.12890625
+        },
+        "5": {
+            "forward": 1.122415834318122,
+            "backward": 1.7003327754026416,
+            "per_epoch_whole": 33672.01953125
+        }
+    },
+    "result": {
+        "0": 0,
+        "1": 21.097098796025314,
+        "2": 24.367830603490663,
+        "3": 23.48704539077711,
+        "4": 28.816595495365227,
+        "5": 30.31422588658214
+    }
+}

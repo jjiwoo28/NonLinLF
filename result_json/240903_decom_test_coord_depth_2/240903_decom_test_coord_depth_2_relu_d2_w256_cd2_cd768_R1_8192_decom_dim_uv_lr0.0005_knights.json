@@ -1,0 +1,19 @@
+{
+    "path": "240903_decom_test_coord_depth_2_relu_d2_w256_cd2_cd768_R1_8192_decom_dim_uv_lr0.0005_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 768,
+    "dataset_name": "knights",
+    "model_info": "relu",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

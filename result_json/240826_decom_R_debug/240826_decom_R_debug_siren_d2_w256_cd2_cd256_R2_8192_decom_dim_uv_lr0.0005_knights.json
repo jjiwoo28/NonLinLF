@@ -1,0 +1,50 @@
+{
+    "path": "240826_decom_R_debug_siren_d2_w256_cd2_cd256_R2_8192_decom_dim_uv_lr0.0005_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "siren",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 2,
+    "result": {
+        "0": 0,
+        "1": 19.18239170792791,
+        "2": 21.444587500800594,
+        "3": 22.85579920301223,
+        "4": 23.377126282060395,
+        "5": 23.992019945029075
+    },
+    "result_time": {
+        "1": {
+            "forward": 0.8726037727623731,
+            "backward": 1.5325563530015434,
+            "per_epoch_whole": 39680.55078125
+        },
+        "2": {
+            "forward": 0.7571461350885872,
+            "backward": 1.6134214912215825,
+            "per_epoch_whole": 24304.05078125
+        },
+        "3": {
+            "forward": 0.7606465819978196,
+            "backward": 1.6127787375352123,
+            "per_epoch_whole": 24361.9765625
+        },
+        "4": {
+            "forward": 0.729424097572029,
+            "backward": 1.5348660283074176,
+            "per_epoch_whole": 22944.0546875
+        },
+        "5": {
+            "forward": 0.7363262117218482,
+            "backward": 1.5573841216474502,
+            "per_epoch_whole": 23297.908203125
+        }
+    }
+}

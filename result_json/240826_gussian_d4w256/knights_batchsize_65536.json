@@ -1,0 +1,14 @@
+{
+    "path": "knights_batchsize_65536",
+    "depth": 4,
+    "width": 256,
+    "dataset_name": "knights",
+    "model_info": "gauss",
+    "lr": 0.005,
+    "batch_size": 65536,
+    "omega": 5,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

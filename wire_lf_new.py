@@ -250,7 +250,7 @@ def run(opt):
 #        sidelength = H
         sidelength = 512
         
-
+    #breakpoint()
     model = models.get_INR(
                     nonlin=nonlin,
                     in_features=4,

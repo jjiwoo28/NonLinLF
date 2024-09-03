@@ -60,11 +60,12 @@ def parse_argument():
     parser.add_argument('--benchmark', action='store_true')
     parser.add_argument('--test_img_save_freq', type=int , default=-1)
     
+    parser.add_argument('--sample_first',type=str , default="algo")
+    
     parser.add_argument('--lr_batch_preset', action='store_true')
     
     parser.add_argument('--nonlin', type=str , default="relu")
     parser.add_argument('--decom_dim', type=str , default="uv")
-    parser.add_argument('--sample_type', type=str , default="all")
     parser.add_argument('--omega', type=int , default=5)
     parser.add_argument('--sigma', type=int , default=5)
     parser.add_argument("--gpu", default="0", type=str, help="Comma-separated list of GPU(s) to use.")
@@ -164,7 +165,6 @@ def run(opt):
     
     logger.set_metadata("decom_dim", opt.decom_dim)
     logger.set_metadata("R", opt.R)
-    logger.set_metadata("sample_type" , opt.sample_type)
 
     
     
@@ -295,22 +295,37 @@ def run(opt):
         
 
 
-    team1 = [0,1]
-    team2 = [2,3]
+    loc_dim_xy = [0,1]
+    img_dim_u = [2]
+    img_dim_v = [3]
+    
 
-    team1_shape = 1
-    team2_shape = 1
-    for s in team1:
-        team1_shape*=color_whole.shape[s]
+    loc_dim_xy_shape = 1
+    img_dim_u_shape = 1
+    img_dim_v_shape = 1
+    
+    for i in loc_dim_xy:
+        loc_dim_xy_shape*=color_whole.shape[i]
+    for i in img_dim_u:
+        img_dim_u_shape*=color_whole.shape[i]
+    for i in img_dim_v:
+        img_dim_v_shape*=color_whole.shape[i]
 
-    for s in team2:
-        team2_shape*=color_whole.shape[s]
 
     mgrid_team1 = get_mgrid((color_whole.shape[0], color_whole.shape[1]), dim=2).unsqueeze(1).cuda()
     mgrid_team2 = get_mgrid((color_whole.shape[2], color_whole.shape[3]), dim=2).unsqueeze(0).cuda()
+    
+    loc_dim_xy_mgrid = get_mgrid((color_whole.shape[0], color_whole.shape[1]), dim=2).unsqueeze(1).unsqueeze(2).cuda()
+    img_dim_u_mgrid  = get_mgrid((color_whole.shape[2]), dim=1).unsqueeze(0).unsqueeze(2).cuda()
+    img_dim_v_mgrid  = get_mgrid((color_whole.shape[3]), dim=1).unsqueeze(0).unsqueeze(1).cuda()
+    
+    print(loc_dim_xy_mgrid.shape)
+    print(img_dim_u_mgrid.shape)
+    print(img_dim_v_mgrid.shape)
+    
+    #breakpoint()
 
     N_samples = opt.batch_size
-    N_samples_dim = np.sqrt(N_samples)
 
     # prefix = 1
     # train_val_index = [4,8,12]
@@ -326,100 +341,190 @@ def run(opt):
     color_whole = color_whole.reshape((image_axis_num*image_axis_num*h*w, -1))
     color_whole = torch.tensor(color_whole).cuda()
 
-    def sampling_val_uv(xy_idx ,device='cuda'):
-        coord_id1 = np.array([xy_idx]) 
-        coord_id2 = np.arange(team2_shape)
+    def sampling_val_3decom(xy_idx ,device='cuda'):
+        loc_dim_xy_id = np.array([xy_idx]) 
+        img_dim_u_id = np.arange(img_dim_u_shape)
+        img_dim_v_id = np.arange(img_dim_v_shape)
 
-        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
+        coord_id = (loc_dim_xy_id[:,None , None] *  img_dim_u_shape*img_dim_v_shape + img_dim_u_id[None,: ,None]*img_dim_v_shape + img_dim_v_id[None,None,:]).reshape(-1)
         
         # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
         sampled_data = color_whole[coord_id,:]
         #sampled_data = sampled_data.reshape((h,w,-1))
+        loc_dim_xy_coord = loc_dim_xy_mgrid[None ,loc_dim_xy_id , : , : , :]
+        img_dim_u_coord = img_dim_u_mgrid[None , : , : , : , :]
+        img_dim_v_coord = img_dim_v_mgrid[None , : , : , : , :]
 
-        coord_1 = mgrid_team1[None , coord_id1 , : ,:]
-        coord_2 = mgrid_team2[None , : , : ,:]
 
-        return [coord_1 ,coord_2], sampled_data
+        return [loc_dim_xy_coord ,img_dim_u_coord , img_dim_v_coord], sampled_data
 
-    def sampling_val_us(xy_idx ,device='cuda'):
-        x_idx = xy_idx % 17
-        y_idx = xy_idx // 17
-        coord_id1 = np.arange(h) + x_idx*h
-        coord_id2 = np.arange(w) + y_idx*w
-        
-        
-        # coord_id1 = np.array([xy_idx]) 
-        # coord_id2 = np.arange(team2_shape)
 
-        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
-        
-        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
-        sampled_data = color_whole[coord_id,:]
-        #sampled_data = sampled_data.reshape((h,w,-1))
-
-        coord_1 = mgrid_team1[None , coord_id1 , : ,:]
-        coord_2 = mgrid_team2[None , : , coord_id2 ,:]
-
-        return [coord_1 ,coord_2], sampled_data
-
-    sampling_functions = {
-        "uv": sampling_val_uv,
-        "us": sampling_val_us
-    }
-    
-    sampling_val = sampling_functions[opt.decom_dim]
-        
-    #breakpoint()
-    # cs ,  img_val = sampling_val_for_epi(72)
+    # breakpoint()
+    # cs ,  img_val = sampling_val_3decom(72)
+    # img_val = img_val.reshape(img_dim_u_shape , img_dim_v_shape, -1)
     # img_arr = (np.array(img_val.cpu())*255).astype(np.uint8)
 
     # img = Image.fromarray(img_arr)
-    # img.save(f'sampling_val_for_epi_test11111.png')
-    # #breakpoint()
+    # img.save(f'sampling_val_3dcom_test11111.png')
+    # breakpoint()
 
-    def sampling_random_all(device='cuda'):
-        num = np.random.randint(1, round(team1_shape-1))
+    def sampling_random_xy_first(device='cuda'):
+        #breakpoint()
+        num_xy = np.random.randint(1, round(loc_dim_xy_shape-1))
+        num_u = np.random.randint(1, round((N_samples/num_xy)-1))
+        num_v = round(N_samples/(num_u*num_xy))
         
-        coord_id1 = torch.randperm(team1_shape, device=device)[:num]
-        coord_id2 = torch.randint(0, team2_shape, (round(N_samples/num),), device=device)
+        loc_dim_xy_id = torch.randperm(loc_dim_xy_shape, device=device)[:num_xy]
+        print(f"loc_dim_xy_id : {loc_dim_xy_id.shape[0]} ")
+        img_dim_u_id = torch.randperm(img_dim_u_shape, device=device)[:num_u]
+        print(f"img_dim_u_id : {img_dim_u_id.shape[0]}")
+        img_dim_v_id = torch.randperm( img_dim_v_shape, device=device)[:num_v]
+        print(f"img_dim_v_id : {img_dim_v_id.shape[0]}")
+        print(f"xy * u * v : {loc_dim_xy_id.shape[0]*img_dim_u_id.shape[0] * img_dim_v_id.shape[0]} ")
+
+        coord_id = (loc_dim_xy_id[:,None , None] *  img_dim_u_shape*img_dim_v_shape + img_dim_u_id[None,: ,None]*img_dim_v_shape + img_dim_v_id[None,None,:]).reshape(-1)
         
-        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
         
-        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
         sampled_data = color_whole[coord_id,:]
-        
-        coord_1 = mgrid_team1[None ,coord_id1 , : , :]
-        coord_2 = mgrid_team2[None, : ,coord_id2 , :]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+        loc_dim_xy_coord = loc_dim_xy_mgrid[None ,loc_dim_xy_id , : , : , :]
+        img_dim_u_coord = img_dim_u_mgrid[None , : , img_dim_u_id , : , :]
+        img_dim_v_coord = img_dim_v_mgrid[None , : , : , img_dim_v_id , :]
 
-        return  [coord_1 ,coord_2], sampled_data
+        return [loc_dim_xy_coord ,img_dim_u_coord , img_dim_v_coord], sampled_data
     
-    def sampling_random_const(device='cuda'):
+    def sampling_random_uv_first(device='cuda'):
+        #breakpoint()
+        num_u = np.random.randint(1, round(img_dim_u_shape-1))
+        num_v = np.random.randint(1, round((N_samples/num_u)-1))
+        num_xy = round(N_samples/(num_u*num_v))
+
         
-        coord_id1 = torch.randperm(team1_shape, device=device)[:N_samples_dim]
-        coord_id2 = torch.randperm(team2_shape, device=device)[:N_samples_dim]
+        loc_dim_xy_id = torch.randperm(loc_dim_xy_shape, device=device)[:num_xy]
+        print(f"loc_dim_xy_id : {loc_dim_xy_id.shape[0]} ")
+        img_dim_u_id = torch.randperm(img_dim_u_shape, device=device)[:num_u]
+        print(f"img_dim_u_id : {img_dim_u_id.shape[0]}")
+        img_dim_v_id = torch.randperm( img_dim_v_shape, device=device)[:num_v]
+        print(f"img_dim_v_id : {img_dim_v_id.shape[0]}")
+        print(f"xy * u * v : {loc_dim_xy_id.shape[0]*img_dim_u_id.shape[0] * img_dim_v_id.shape[0]} ")
+
+        coord_id = (loc_dim_xy_id[:,None , None] *  img_dim_u_shape*img_dim_v_shape + img_dim_u_id[None,: ,None]*img_dim_v_shape + img_dim_v_id[None,None,:]).reshape(-1)
         
-        coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
         
-        # color_whole가 이미 GPU에 있으므로 .to(device)를 추가할 필요가 없음
         sampled_data = color_whole[coord_id,:]
-        
-        coord_1 = mgrid_team1[None ,coord_id1 , : , :]
-        coord_2 = mgrid_team2[None, : ,coord_id2 , :]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+        loc_dim_xy_coord = loc_dim_xy_mgrid[None ,loc_dim_xy_id , : , : , :]
+        img_dim_u_coord = img_dim_u_mgrid[None , : , img_dim_u_id , : , :]
+        img_dim_v_coord = img_dim_v_mgrid[None , : , : , img_dim_v_id , :]
 
-        return  [coord_1 ,coord_2], sampled_data
+
+        return [loc_dim_xy_coord ,img_dim_u_coord , img_dim_v_coord], sampled_data
     
-    sampling_ramdom_functions = {
-        "all": sampling_random_all,
-        "const": sampling_random_const
+    def sampling_random_argo(device='cuda'):
+        num_u , num_v , num_xy  = random_sampling_product(img_dim_u_shape,img_dim_v_shape,loc_dim_xy_shape)
+        # num_u = np.random.randint(1, round(img_dim_u_shape-1))
+        # num_v = np.random.randint(1, round((N_samples/num_u)-1))
+        # num_xy = round(N_samples/(num_u*num_v))
+
+        
+        loc_dim_xy_id = torch.randperm(loc_dim_xy_shape, device=device)[:num_xy]
+        #print(f"loc_dim_xy_id : {loc_dim_xy_id.shape[0]} ")
+        img_dim_u_id = torch.randperm(img_dim_u_shape, device=device)[:num_u]
+        #print(f"img_dim_u_id : {img_dim_u_id.shape[0]}")
+        img_dim_v_id = torch.randperm( img_dim_v_shape, device=device)[:num_v]
+        #print(f"img_dim_v_id : {img_dim_v_id.shape[0]}")
+        #print(f"xy * u * v : {loc_dim_xy_id.shape[0]*img_dim_u_id.shape[0] * img_dim_v_id.shape[0]} ")
+
+        coord_id = (loc_dim_xy_id[:,None , None] *  img_dim_u_shape*img_dim_v_shape + img_dim_u_id[None,: ,None]*img_dim_v_shape + img_dim_v_id[None,None,:]).reshape(-1)
+        
+        
+        sampled_data = color_whole[coord_id,:]
+        #sampled_data = sampled_data.reshape((h,w,-1))
+        loc_dim_xy_coord = loc_dim_xy_mgrid[None ,loc_dim_xy_id , : , : , :]
+        img_dim_u_coord = img_dim_u_mgrid[None , : , img_dim_u_id , : , :]
+        img_dim_v_coord = img_dim_v_mgrid[None , : , : , img_dim_v_id , :]
+
+
+        return [loc_dim_xy_coord ,img_dim_u_coord , img_dim_v_coord], sampled_data
+    
+    
+    def random_sampling_product(max1, max2, max3):
+        
+        N = N_samples
+        # N의 제곱근, 세제곱근 등을 사용해 초기 값을 추정
+        val1 = torch.randint(1, max1 + 1, (1,))
+        val2 = torch.randint(1, max2 + 1, (1,))
+        val3 = torch.randint(1, max3 + 1, (1,))
+        
+        # 초기 곱을 계산
+        current_product = val1 * val2 * val3
+        
+        # 현재 곱과 N의 차이를 구함
+        difference = N / current_product.item()
+
+        # 각 값에 대해 스케일링을 적용하여 조정
+        val1 = (val1.float() * difference ** (1/3)).round().int().clamp(1, max1)
+        val2 = (val2.float() * difference ** (1/3)).round().int().clamp(1, max2)
+        val3 = (val3.float() * difference ** (1/3)).round().int().clamp(1, max3)
+        
+        # 최종적으로 val1, val2, val3의 곱이 N에 근접하도록 조정
+        total_product = val1 * val2 * val3
+        difference = N / total_product.item()
+        
+        if difference > 1:
+            factor = min(difference, max1 / val1.item())
+            val1 = (val1.float() * factor).round().int().clamp(1, max1)
+        elif difference < 1:
+            factor = max(difference, 1 / max1)
+            val1 = (val1.float() * factor).round().int().clamp(1, max1)
+        
+        return val1.item(), val2.item(), val3.item()
+
+    sampling_val_functions = {
+        "3dcom": sampling_val_3decom,
     }
     
-    sampling_random = sampling_ramdom_functions[opt.sample_type]
+    sampling_val = sampling_val_functions["3dcom"]
+        
+        
+    sampling_random_functions = {
+        "xy": sampling_random_xy_first,
+        "uv": sampling_random_uv_first,
+        "algo" : sampling_random_argo
+    }
     
-    # coords , data  = sampling_random()
+    sampling_random = sampling_random_functions[opt.sample_first]
+    breakpoint()
+        
+    coords , colors = sampling_random_uv_first()     
+    coords , colors = sampling_val(10)
+    breakpoint()
+         
+
+    # for _ in range(100):
+    #     a, b, c = random_sampling_product(img_dim_u_shape,img_dim_v_shape,loc_dim_xy_shape)
+    #     print(f"{a} {b} {c}")
+    #     print(f"{a*b*c}")
+    #breakpoint()
+    #test1, test2 = sampling_test()
+    # print("")
+    # print("xy")
+    # print("")
+    # for _ in range(10):
+    #     coords , data  = sampling_random_xy_first()
+        
+    # print("")
+    # print("uv")
+    # print("")
+    
+    # for _ in range(10):
+    #     coords , data  = sampling_random_uv_first()
+        
     # coords_val , data_val  = sampling_val(100)
-    # #breakpoint()
     # coords_val , data_val  = sampling_val_for_epi(72)
     
+        
+
 
     # def save_images(array, prefix='image'):
     #     num_images, height, width, _ = array.shape
@@ -469,12 +574,15 @@ def run(opt):
                                     split_input_nonlin2=opt.nonlin,
                                     after_nonlin=opt.nonlin,
                                     before_nonlin=opt.nonlin,
-                                    R = opt.R)
+                                    R = opt.R,
+                                    feat_per_channel=[2,1,1])
     
 
     ckpt_paths = glob.glob(os.path.join(ckpt_path,"*.pth"))
     #breakpoint()
     load_epoch = 0
+    
+    #breakpoint()
   
     if len(ckpt_paths) > 0:
         for path in ckpt_paths:
@@ -574,7 +682,7 @@ def run(opt):
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
 
-                                #breakpoint()
+                #breakpoint()
                 coords , data  = sampling_random()
                 start.record()
                 output = model(coords)

@@ -1,0 +1,19 @@
+{
+    "path": "240828_decom_debug_3decom_finersiren_d2_w256_cd2_cd256_R2_8192_decom_dim_uv_lr0.001_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "finersiren",
+    "lr": 0.001,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 2,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

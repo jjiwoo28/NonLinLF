@@ -1,0 +1,50 @@
+{
+    "path": "240826_decom_R_debug_finer_d2_w256_cd2_cd256_R2_65536_decom_dim_uv_lr0.0001_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "finer",
+    "lr": 0.0001,
+    "batch_size": 65536,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 2,
+    "result": {
+        "0": 0,
+        "1": 16.988229983696392,
+        "2": 18.057044177086603,
+        "3": 18.488937552903685,
+        "4": 18.67523173830337,
+        "5": 18.868106993309205
+    },
+    "result_time": {
+        "1": {
+            "forward": 13.069297969959994,
+            "backward": 13.790279337279097,
+            "per_epoch_whole": 34898.17578125
+        },
+        "2": {
+            "forward": 12.227358813929312,
+            "backward": 14.37945058106552,
+            "per_epoch_whole": 34997.68359375
+        },
+        "3": {
+            "forward": 11.985243462361263,
+            "backward": 14.115432023177101,
+            "per_epoch_whole": 34252.6328125
+        },
+        "4": {
+            "forward": 11.707023281127112,
+            "backward": 13.813599848004765,
+            "per_epoch_whole": 33365.8828125
+        },
+        "5": {
+            "forward": 12.240720452734326,
+            "backward": 14.449442081385422,
+            "per_epoch_whole": 35044.25
+        }
+    }
+}

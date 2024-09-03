@@ -1,6 +1,6 @@
 stanford_path="/data/NeuLF_rgb/stanford_half"
 
-test_day="240828_decom_R"
+test_day="240829_decom_debug_3decom"
 result_path="/data/result/${test_day}"
 
 width="256"
@@ -12,13 +12,13 @@ epoch="100"
 datasets=( "knights" )
 batch_sizes=("8192")
 coord_depths=("2")
-Rs=("2" "3")
+Rs=("2" )
 
 decom_dims=("uv")
 #lrs=( "0.001" "0.0005" "0.0001" )
-lrs=( "0.0005" "0.001"   )
+lrs=( "0.001"   )
 
-nomlin=( "finer" "siren" "gauss" )
+nomlin=( "gauss" )
 #nomlin=("finer")
 
 for R in "${Rs[@]}"; do
@@ -29,7 +29,7 @@ for R in "${Rs[@]}"; do
                     for batch_size in "${batch_sizes[@]}"; do
                         for decom_dim in "${decom_dims[@]}"; do
                             echo "Processing $dataset , $nonlin , $R , $decom_dim"
-                            python nlf_decom.py \
+                            python nlf_decom_debug_debug.py \
                                 --data_dir "${stanford_path}/${dataset}" \
                                 --exp_dir "${result_path}/${test_day}_${nonlin}_d${depth}_w${width}_cd${coord_depth}_cd${coord_width}_R${R}_${batch_size}_decom_dim_${decom_dim}_lr${lr}_${dataset}" \
                                 --depth $depth \
@@ -42,7 +42,7 @@ for R in "${Rs[@]}"; do
                                 --lr $lr \
                                 --benchmark \
                                 --batch_size $batch_size \
-                                --gpu 1 \
+                                --gpu 0 \
                                 --decom_dim $decom_dim \
                                 --R $R
 

@@ -45,6 +45,7 @@ def get_decom_INR( in_features,
                 after_nonlin="relu",
                 before_nonlin="relu",
                 R = 1,
+                feat_per_channel  = [2,2]
                 ):
     '''
         Function to get a class instance for a given type of
@@ -116,6 +117,7 @@ def get_decom_INR( in_features,
                 after_nonlin=after,
                 before_nonlin=before,
                 R = R,
+                feat_per_channel  = feat_per_channel
                 )
         
     return model
@@ -139,11 +141,12 @@ class INR(nn.Module):
                  after_nonlin=relu.ReLULayer,
                  before_nonlin=relu.ReLULayer,
                  R = 1,
+                 feat_per_channel  = [2,2]
                  ):
         super().__init__()
       
 
-        self.feat_per_channel = [2,2]
+        self.feat_per_channel = feat_per_channel
         self.split_input_nonlin1=split_input_nonlin1
         self.split_input_nonlin2=split_input_nonlin2
         self.after_nonlin=after_nonlin

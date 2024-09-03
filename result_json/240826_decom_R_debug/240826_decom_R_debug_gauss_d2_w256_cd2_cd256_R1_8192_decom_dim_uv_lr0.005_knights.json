@@ -1,0 +1,50 @@
+{
+    "path": "240826_decom_R_debug_gauss_d2_w256_cd2_cd256_R1_8192_decom_dim_uv_lr0.005_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "gauss",
+    "lr": 0.005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "result": {
+        "0": 0,
+        "1": 12.185357926581723,
+        "2": 12.188064669817823,
+        "3": 12.189487210054523,
+        "4": 12.189465046114295,
+        "5": 12.18810859832334
+    },
+    "result_time": {
+        "1": {
+            "forward": 0.9962708293476377,
+            "backward": 1.8857358437946632,
+            "per_epoch_whole": 28897.576171875
+        },
+        "2": {
+            "forward": 0.9635192664359424,
+            "backward": 1.9045723709809401,
+            "per_epoch_whole": 28919.408203125
+        },
+        "3": {
+            "forward": 0.9694425118152443,
+            "backward": 1.8852065251463277,
+            "per_epoch_whole": 28865.310546875
+        },
+        "4": {
+            "forward": 0.9459603428389489,
+            "backward": 1.870554463750967,
+            "per_epoch_whole": 28260.4921875
+        },
+        "5": {
+            "forward": 0.9471419303513586,
+            "backward": 1.8717450587832964,
+            "per_epoch_whole": 28229.0078125
+        }
+    }
+}
