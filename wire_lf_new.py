@@ -412,17 +412,20 @@ def run(opt):
                 i = 0
                 count = 0
                 psnr_arr = []
+                val_size = uvst_whole_val.shape[0] / (img_w*img_h)
+                #breakpoint()
                 while i < uvst_whole_val.shape[0]:
+                    #print(i)
                     end = i+img_w*img_h
                     uvst = uvst_whole_val[i:end]
                     uvst = torch.from_numpy(uvst.astype(np.float32)).cuda()
-                    start = torch.cuda.Event(enable_timing=True)
-                    end = torch.cuda.Event(enable_timing=True)
-                    start.record()
+                    start_time = torch.cuda.Event(enable_timing=True)
+                    end_time = torch.cuda.Event(enable_timing=True)
+                    start_time.record()
                     pred_color = model(uvst)
-                    end.record()
+                    end_time.record()
                     torch.cuda.synchronize()
-                    avg_inference_time += (start.elapsed_time(end) / val_size)
+                    avg_inference_time += (start_time.elapsed_time(end_time) / val_size)
                     gt_color   = color_whole_val[i:end]
                     
                     pred_img = pred_color.reshape((img_h,img_w,3)).permute((2,0,1))
@@ -455,18 +458,9 @@ def run(opt):
                 
                 psnr_arr_rounded = [f"{psnr:.2f}" for psnr in psnr_arr]
 
-                print(f"epoch : {epoch:.2f} , PSNR -> avg : {psnr_result}  all : {psnr_arr_rounded}")
+                print(f"epoch : {epoch:.2f} , PSNR -> avg : {psnr_result:.2f}  all : {psnr_arr_rounded}")
                 
-                
-                if (epoch >= 20) and (arg_psnr <= 19):
-                    divergence_count =+1
-                    
-                
-                
-                if divergence_count >= 5:
-                    logger.set_metadata("isDivergence", "true")
-                    logger.save_results()
-                    sys.exit("Program terminated due to divergence condition.")
+
                 
                 logger.save_results()
 

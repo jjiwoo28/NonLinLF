@@ -1,0 +1,20 @@
+{
+    "path": "240913_nlf_relu_test_relu_d2_w256_8192_lr0.0005_knights",
+    "depth": 2,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "sample_type": "all",
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

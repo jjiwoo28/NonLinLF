@@ -371,6 +371,7 @@ def run(opt):
                 count = 0
                 psnr_arr = []
                 while i < uvst_whole_val.shape[0]:
+                    print(i)
                     end = i+img_w*img_h
                     uvst = uvst_whole_val[i:end]
                     uvst = torch.from_numpy(uvst.astype(np.float32)).cuda()
