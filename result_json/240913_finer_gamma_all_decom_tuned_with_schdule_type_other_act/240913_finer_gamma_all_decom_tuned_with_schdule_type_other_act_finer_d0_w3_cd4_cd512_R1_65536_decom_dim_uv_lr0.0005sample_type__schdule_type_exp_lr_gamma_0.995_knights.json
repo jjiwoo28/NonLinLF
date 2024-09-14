@@ -1,0 +1,83 @@
+{
+    "path": "240913_finer_gamma_all_decom_tuned_with_schdule_type_other_act_finer_d0_w3_cd4_cd512_R1_65536_decom_dim_uv_lr0.0005sample_type__schdule_type_exp_lr_gamma_0.995_knights",
+    "depth": 0,
+    "width": 3,
+    "coord_depth": 4,
+    "coord_width": 512,
+    "dataset_name": "knights",
+    "model_info": "finer",
+    "lr": 0.0005,
+    "batch_size": 65536,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "exp",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "10": 17.493827817492477,
+        "20": 18.366179979678726,
+        "30": 19.34727947633193,
+        "40": 19.599965983962036,
+        "50": 19.740168656574987,
+        "60": 19.802719216735525,
+        "70": 19.96740676611313,
+        "80": 19.78705753749614,
+        "90": 19.95030004478529,
+        "100": 19.945253370594035
+    },
+    "result_time": {
+        "10": {
+            "forward": 1.0297510601760602,
+            "backward": 3.5840804748056683,
+            "per_epoch_whole": 8694.5478515625
+        },
+        "20": {
+            "forward": 1.0681384091868127,
+            "backward": 3.5205350575975074,
+            "per_epoch_whole": 7428.8251953125
+        },
+        "30": {
+            "forward": 1.0432787832504316,
+            "backward": 3.5793630971628043,
+            "per_epoch_whole": 8699.51953125
+        },
+        "40": {
+            "forward": 1.061919721868214,
+            "backward": 3.514980068668777,
+            "per_epoch_whole": 7394.1669921875
+        },
+        "50": {
+            "forward": 1.011879944883826,
+            "backward": 3.5928588223911033,
+            "per_epoch_whole": 8674.19921875
+        },
+        "60": {
+            "forward": 1.03139202899999,
+            "backward": 3.5372428539302527,
+            "per_epoch_whole": 7890.83837890625
+        },
+        "70": {
+            "forward": 1.0117613565447428,
+            "backward": 3.5754638912355987,
+            "per_epoch_whole": 8688.33984375
+        },
+        "80": {
+            "forward": 0.9876151151413742,
+            "backward": 3.5825985078168165,
+            "per_epoch_whole": 8705.689453125
+        },
+        "90": {
+            "forward": 0.9893157387274752,
+            "backward": 3.5771993916339935,
+            "per_epoch_whole": 8692.6103515625
+        },
+        "100": {
+            "forward": 1.0398547825722546,
+            "backward": 3.6013710727741164,
+            "per_epoch_whole": 8694.8203125
+        }
+    }
+}

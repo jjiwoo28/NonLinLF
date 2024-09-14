@@ -158,7 +158,7 @@ class INR(nn.Module):
         self.after_hidden_layers = after_hidden_layers
         self.before_hidden_features = before_hidden_features
         self.before_hidden_layers = before_hidden_layers
-        
+        self.reduce_method = "linear"
 
 
         self.coord_input_layer = nn.ModuleList(
@@ -203,17 +203,23 @@ class INR(nn.Module):
             self.net.append(self.before_nonlin(before_hidden_features, before_hidden_features, 
                                       is_first=False, omega_0=hidden_omega_0,
                                       scale=scale))
-
-        if outermost_linear:
-            final_linear = nn.Linear(before_hidden_features,
-                                     out_features , bias = True)
-                        
-            self.net.append(final_linear)
+        if not before_hidden_layers ==0:
+            if outermost_linear:
+                final_linear = nn.Linear(before_hidden_features,
+                                        out_features , bias = True)
+                            
+                self.net.append(final_linear)
+            else:
+                self.net.append(self.nonlin(before_hidden_features, out_features, 
+                                        is_first=False, omega_0=hidden_omega_0,
+                                        scale=scale))
         else:
-            self.net.append(self.nonlin(before_hidden_features, out_features, 
-                                      is_first=False, omega_0=hidden_omega_0,
-                                      scale=scale))
-        
+            #breakpoint()
+            final_linear = nn.Linear(after_hidden_features,
+                                        out_features , bias = True)
+                            
+            self.net.append(final_linear)
+            
         #self.net = nn.Sequential(*self.net)
     
     def forward(self, coords):
@@ -240,15 +246,34 @@ class INR(nn.Module):
     def forward_fusion(self, hs):
         h = hs[0]
         for hi in hs[1:]:
-            if self.fusion_operator == 'sum':
-                h = h + hi
-            elif self.fusion_operator == 'prod':
-                h = h * hi
+            h = h * hi
         #breakpoint()
         h_sh = h.shape
-        if h_sh[-1] > self.before_hidden_features:
-            h = h.reshape(*h_sh[:-1], self.before_hidden_features, -1).sum(-1)
-            
+        #last_dim = h_sh[-1]
+        
+        # if self.before_hidden_features == 3:
+        #     pass
+            # # 마지막 차원을 3의 배수로 자릅니다.
+            # truncated_size = (last_dim // 3) * 3
+            # h = h[..., :truncated_size]
+
+            # # 선택된 방법에 따라 다른 동작을 수행합니다.
+            # if self.reduce_method == 'mean':
+            #     # 평균 풀링
+            #     h = h.reshape(*h_sh[:-1], -1, 3).mean(-2)
+            # elif self.reduce_method == 'max':
+            #     # 최대 풀링
+            #     h = h.reshape(*h_sh[:-1], -1, 3).max(-2)
+            # elif self.reduce_method == 'linear':
+            #     # 선형 변환
+            #     linear_transform = torch.nn.Linear(last_dim, 3).to(h.device)
+            #     h = linear_transform(h)
+            # else:
+            #     raise ValueError(f"Unknown reduce method: {self.reduce_method}")
+        #실험 -> only coord mlp 가 끝나도 가시 R전략을 사용하려면 아래 주석을 없애야함.
+        # elif h_sh[-1] > self.before_hidden_features:
+        #     h = h.reshape(*h_sh[:-1], self.before_hidden_features, -1).sum(-1)
+
         for i in range(self.before_hidden_layers+1):
             h = self.net[i](h)
         return h

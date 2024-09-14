@@ -1,0 +1,26 @@
+{
+    "path": "240904_all_decom_tuning_relu_d-1_w3_cd2_cd256_R1_8192_decom_dim_uv_lr0.005sample_type__knights",
+    "depth": -1,
+    "width": 3,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu",
+    "lr": 0.005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "result_time": {
+        "1": {
+            "forward": 0.526764012264105,
+            "backward": 0.6201689589001651,
+            "per_epoch_whole": 48702.1875
+        }
+    },
+    "result": {
+        "0": 0,
+        "1": 13.192905739156275
+    }
+}

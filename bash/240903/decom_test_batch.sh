@@ -6,6 +6,7 @@ result_path="/data/result/${test_day}"
 depth="2"
 width="256"
 coord_depths=("2")
+
 coord_widths=("256")
 epoch="300"
 

@@ -15,11 +15,23 @@ class PSNRLogger:
         self.results[str(epoch)] = psnr
         
     def push_time(self, forward, backward, per_epoch_whole, epoch):
-        self.results_time[str(epoch)] = {
+        if str(epoch) not in self.results_time:
+            self.results_time[str(epoch)] = {}
+        
+        self.results_time[str(epoch)].update({
             'forward': forward,
             'backward': backward,
             'per_epoch_whole': per_epoch_whole
-        }
+        })
+
+    def push_infer_time(self, inference, epoch):
+        if str(epoch) not in self.results_time:
+            self.results_time[str(epoch)] = {}
+
+        self.results_time[str(epoch)].update({
+            'inference_time': inference
+        })
+            
     def save_results(self):
         full_path = f"{self.path}/{self.file_name}.json"
         os.makedirs(os.path.dirname(full_path), exist_ok=True)

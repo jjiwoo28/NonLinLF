@@ -52,6 +52,8 @@ def parse_argument():
     parser.add_argument('--test_freq', type=int , default=10)
     parser.add_argument('--save_ckpt_path', type=int , default=100)
     parser.add_argument('--lr', type=float , default=5e-3)
+    parser.add_argument('--lr_gamma', type=float , default=0.995)
+    parser.add_argument('--lr_linear_C', type=float , default=1)
     parser.add_argument('--batch_size',type=int, default = 256*256,help='normalize input')
     
     parser.add_argument('--save_test_img', action='store_true')
@@ -63,6 +65,7 @@ def parse_argument():
     parser.add_argument('--sample_first',type=str , default="algo")
     
     parser.add_argument('--lr_batch_preset', action='store_true')
+    parser.add_argument('--schdule_type', type=str , default="linear")
     
     parser.add_argument('--nonlin', type=str , default="relu")
     parser.add_argument('--decom_dim', type=str , default="uv")
@@ -165,6 +168,9 @@ def run(opt):
     
     logger.set_metadata("decom_dim", opt.decom_dim)
     logger.set_metadata("R", opt.R)
+    logger.set_metadata("schdule_type", opt.schdule_type)
+    logger.set_metadata("lr_gamma", opt.lr_gamma)
+    logger.set_metadata("lr_linear_C", opt.lr_linear_C)
 
     
     
@@ -607,10 +613,16 @@ def run(opt):
     optim = torch.optim.Adam(lr=learning_rate,params=model.parameters())
    
     # Schedule to reduce lr to 0.1 times the initial rate in final epoch
-    scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
+    #scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
     
     #if (opt.nonlin == 'relu') or (opt.nonlin =='relu_skip'):
     #scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
+    scheduler_type = {
+        "exp": torch.optim.lr_scheduler.ExponentialLR(optim, gamma=opt.lr_gamma),
+        "linear": LambdaLR(optim, lambda x: 0.1**min(x/niters, 1)),
+    }
+    
+    scheduler = scheduler_type[opt.schdule_type]
 
         
     
@@ -730,10 +742,10 @@ def run(opt):
                 val_idx = [72, 76, 80, 140, 144, 148, 208, 212, 216]
 
                 for idx in val_idx:
+                    #breakpoint()
                     coords , gt_color   = sampling_val(idx)
                     pred_color = model(coords)
 
-                    #breakpoint()
                     pred_img = pred_color.reshape((img_h,img_w,3)).permute((2,0,1))
                     gt_img   = torch.tensor(gt_color).reshape((img_h,img_w,3)).permute((2,0,1))
 

@@ -1,0 +1,35 @@
+{
+    "path": "240912_gamma_all_decom_tuned_with_schdule_type_relu_d0_w3_cd2_cd1024_R1_65536_decom_dim_uv_lr0.0005sample_type__schdule_type_exp_knights",
+    "depth": 0,
+    "width": 3,
+    "coord_depth": 2,
+    "coord_width": 1024,
+    "dataset_name": "knights",
+    "model_info": "relu",
+    "lr": 0.0005,
+    "batch_size": 65536,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "exp",
+    "lr_gamma": 0.999,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "10": 14.034553994355967,
+        "20": 13.489838971158388
+    },
+    "result_time": {
+        "10": {
+            "forward": 1.9585614395182818,
+            "backward": 13.331038294366493,
+            "per_epoch_whole": 23307.302734375
+        },
+        "20": {
+            "forward": 1.8992027404192808,
+            "backward": 13.410958877484264,
+            "per_epoch_whole": 23418.591796875
+        }
+    }
+}

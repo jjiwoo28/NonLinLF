@@ -395,8 +395,8 @@ def run(opt):
     
     def sampling_random_const(device='cuda'):
         
-        coord_id1 = torch.randperm(team1_shape, device=device)[:N_samples_dim]
-        coord_id2 = torch.randperm(team2_shape, device=device)[:N_samples_dim]
+        coord_id1 = torch.randperm(team1_shape, device=device)[:round(N_samples_dim)]
+        coord_id2 = torch.randperm(team2_shape, device=device)[:round(N_samples_dim)]
         
         coord_id = (coord_id1[:,None] * team2_shape + coord_id2[None, :]).reshape(-1)
         
@@ -503,10 +503,10 @@ def run(opt):
     optim = torch.optim.Adam(lr=learning_rate,params=model.parameters())
    
     # Schedule to reduce lr to 0.1 times the initial rate in final epoch
-    scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
+    #scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
     
     #if (opt.nonlin == 'relu') or (opt.nonlin =='relu_skip'):
-    #scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
 
         
     
@@ -574,7 +574,7 @@ def run(opt):
                 start = torch.cuda.Event(enable_timing=True)
                 end = torch.cuda.Event(enable_timing=True)
 
-                                #breakpoint()
+                #breakpoint()
                 coords , data  = sampling_random()
                 start.record()
                 output = model(coords)

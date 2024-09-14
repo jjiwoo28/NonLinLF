@@ -26,11 +26,11 @@ class RealGaborLayer(nn.Module):
     '''
     
     def __init__(self, in_features, out_features, bias=True,
-                 is_first=False, omega0=10.0, sigma0=10.0,
-                 trainable=False):
+                 is_first=False, omega_0=10.0, sigma_0=10.0,
+                 trainable=False , scale = 0):
         super().__init__()
-        self.omega_0 = omega0
-        self.scale_0 = sigma0
+        self.omega_0 = omega_0
+        self.scale_0 = sigma_0
         self.is_first = is_first
         
         self.in_features = in_features
@@ -60,11 +60,11 @@ class ComplexGaborLayer(nn.Module):
     '''
     
     def __init__(self, in_features, out_features, bias=True,
-                 is_first=False, omega0=10.0, sigma0=40.0,
-                 trainable=False):
+                 is_first=False, omega_0=10.0, sigma_0=40.0, 
+                 trainable=False , scale= 0):
         super().__init__()
-        self.omega_0 = omega0
-        self.scale_0 = sigma0
+        self.omega_0 = omega_0
+        self.scale_0 = sigma_0
         self.is_first = is_first
         
         self.in_features = in_features

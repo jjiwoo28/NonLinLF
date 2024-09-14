@@ -1,0 +1,22 @@
+{
+    "path": "240912_gamma_all_decom_tuned_with_schdule_type_other_act_wire_d0_w3_cd2_cd1024_R1_8192_decom_dim_uv_lr0.0005sample_type__schdule_type_exp_lr_gamma_0.995_knights",
+    "depth": 0,
+    "width": 3,
+    "coord_depth": 2,
+    "coord_width": 1024,
+    "dataset_name": "knights",
+    "model_info": "wire",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "exp",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

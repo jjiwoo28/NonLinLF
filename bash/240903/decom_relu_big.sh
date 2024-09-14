@@ -1,12 +1,12 @@
 stanford_path="/data/NeuLF_rgb/stanford_half"
 
-test_day="240903_decom_test_coord_depth_2"
+test_day="240913_decom_relu_big"
 result_path="/data/result/${test_day}"
 
-depth="2"
+depth="6"
 width="256"
-coord_depths=("2")
-coord_widths=("768" " 512")
+coord_depths=("8")
+coord_widths=("256")
 epoch="300"
 
 #datasets=( "knights" "bracelet" "bunny" "tarot")
@@ -14,7 +14,7 @@ datasets=( "knights" )
 batch_sizes=("8192")
 Rs=("1")
 
-decom_dims=("uv" "us")
+decom_dims=("uv")
 lrs=("0.0005")
 
 nomlin=("relu")
