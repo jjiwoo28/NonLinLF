@@ -406,6 +406,8 @@ def run(opt):
                 torch.save(model.state_dict(), cpt_path)
 
             if epoch % test_freq ==0:
+                avg_inference_time = 0
+                avg_backward_time = 0
                 #print(f"epoch : {epoch}")
                 i = 0
                 count = 0
@@ -414,9 +416,13 @@ def run(opt):
                     end = i+img_w*img_h
                     uvst = uvst_whole_val[i:end]
                     uvst = torch.from_numpy(uvst.astype(np.float32)).cuda()
-                    
-                    
+                    start = torch.cuda.Event(enable_timing=True)
+                    end = torch.cuda.Event(enable_timing=True)
+                    start.record()
                     pred_color = model(uvst)
+                    end.record()
+                    torch.cuda.synchronize()
+                    avg_inference_time += (start.elapsed_time(end) / val_size)
                     gt_color   = color_whole_val[i:end]
                     
                     pred_img = pred_color.reshape((img_h,img_w,3)).permute((2,0,1))
@@ -438,14 +444,19 @@ def run(opt):
                     i = end
                     count+=1
                 
-                print(f"epoch : {epoch} , PSNR : {psnr_arr}")
+                logger.push_infer_time(avg_inference_time ,epoch)    
+                print(f"infer time : {avg_inference_time:.2f}")
+                
                 whole_psnr = 0
                 for psnr in psnr_arr:
                     whole_psnr += psnr
-                arg_psnr = whole_psnr/count
-                logger.push(arg_psnr, epoch)
-                print(f"epoch : {epoch} , PSNR : {psnr_arr}")
-                print(f"epoch : {epoch} , AVG PSNR : {arg_psnr}")
+                psnr_result = whole_psnr/count
+                logger.push(psnr_result , epoch)
+                
+                psnr_arr_rounded = [f"{psnr:.2f}" for psnr in psnr_arr]
+
+                print(f"epoch : {epoch:.2f} , PSNR -> avg : {psnr_result}  all : {psnr_arr_rounded}")
+                
                 
                 if (epoch >= 20) and (arg_psnr <= 19):
                     divergence_count =+1
