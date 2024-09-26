@@ -384,7 +384,7 @@ def run(opt):
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
             
-        if opt.benchmark:# 반복문 끝난 후 시간 기록
+        if  ((epoch %test_freq == 0) and opt.benchmark):# 반복문 끝난 후 시간 기록
             loop_end.record()
             torch.cuda.synchronize()
             #logger.set_metadata("per_epoch_whole_time",loop_start.elapsed_time(loop_end))

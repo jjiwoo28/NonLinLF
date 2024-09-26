@@ -1,11 +1,11 @@
-stanford_path="/data/hmjung/NeuLF_rgb/dataset/stanford_half"
+stanford_path="/data/NeuLF_rgb/stanford_half"
 
 
-test_day="240913_nlf_relu_test"
+test_day="240915_nlf_relu_test_in_aespa"
 result_path="/data/result/${test_day}"
 
 
-depths=("4" "6" "8" "2")
+depths=("4")
 widths=("256")
 
 epoch="300"
@@ -40,7 +40,7 @@ for R in "${Rs[@]}"; do
                                 --lr $lr \
                                 --benchmark \
                                 --batch_size $batch_size \
-                                --gpu 1 
+                                --gpu 0 
 
                             python asem_json.py "/data/result/${test_day}" "result_json/${test_day}"
                             

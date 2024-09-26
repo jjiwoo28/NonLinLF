@@ -99,27 +99,49 @@ def get_decom_INR( in_features,
     after=layer_dict[after_nonlin]
     before=layer_dict[before_nonlin]
     
-               
-    model = INR(in_features,
-                coord_hidden_features=coord_hidden_features,
-                coord_hidden_layers=coord_hidden_layers,
-                after_hidden_features=after_hidden_features,
-                after_hidden_layers=after_hidden_layers,
-                before_hidden_features=before_hidden_features,
-                before_hidden_layers=before_hidden_layers,
-                out_features = out_features,
-                outermost_linear =outermost_linear,
-                first_omega_0 = first_omega_0,
-                hidden_omega_0 = hidden_omega_0 ,
-                scale = scale,
-                split_input_nonlin1=split_input1,
-                split_input_nonlin2=split_input2,
-                after_nonlin=after,
-                before_nonlin=before,
-                R = R,
-                feat_per_channel  = feat_per_channel
-                )
+    if split_input_nonlin1 != 'wire':
+        model = INR(in_features,
+                    coord_hidden_features=coord_hidden_features,
+                    coord_hidden_layers=coord_hidden_layers,
+                    after_hidden_features=after_hidden_features,
+                    after_hidden_layers=after_hidden_layers,
+                    before_hidden_features=before_hidden_features,
+                    before_hidden_layers=before_hidden_layers,
+                    out_features = out_features,
+                    outermost_linear =outermost_linear,
+                    first_omega_0 = first_omega_0,
+                    hidden_omega_0 = hidden_omega_0 ,
+                    scale = scale,
+                    split_input_nonlin1=split_input1,
+                    split_input_nonlin2=split_input2,
+                    after_nonlin=after,
+                    before_nonlin=before,
+                    R = R,
+                    feat_per_channel  = feat_per_channel
+                    )
+    else:
+        #breakpoint()
+        model = WIRE_INR(in_features,
+                    coord_hidden_features=coord_hidden_features,
+                    coord_hidden_layers=coord_hidden_layers,
+                    after_hidden_features=after_hidden_features,
+                    after_hidden_layers=after_hidden_layers,
+                    before_hidden_features=before_hidden_features,
+                    before_hidden_layers=before_hidden_layers,
+                    out_features = out_features,
+                    outermost_linear =outermost_linear,
+                    first_omega_0 = first_omega_0,
+                    hidden_omega_0 = hidden_omega_0 ,
+                    scale = scale,
+                    split_input_nonlin1=split_input1,
+                    split_input_nonlin2=split_input2,
+                    after_nonlin=after,
+                    before_nonlin=before,
+                    R = R,
+                    feat_per_channel  = feat_per_channel
+                    )
         
+            
     return model
 
 
@@ -226,6 +248,7 @@ class INR(nn.Module):
         #breakpoint()
         # if self.pos_encode:
         #     coords = self.positional_encoding(coords)
+        #breakpoint()
         hs = [self.forward_coord(coord, i) for i, coord in enumerate(coords)]
         h = self.forward_fusion(hs)
         
@@ -277,3 +300,162 @@ class INR(nn.Module):
         for i in range(self.before_hidden_layers+1):
             h = self.net[i](h)
         return h
+    
+
+
+class WIRE_INR(nn.Module):
+    def __init__(self, in_features,
+                 coord_hidden_features,
+                 coord_hidden_layers,
+                 after_hidden_features, 
+                 after_hidden_layers, 
+                 before_hidden_features, 
+                 before_hidden_layers, 
+                 out_features, 
+                 outermost_linear=True,
+                 first_omega_0=30, 
+                 hidden_omega_0=30., 
+                 scale=10.0,
+                 split_input_nonlin1=relu.ReLULayer,
+                 split_input_nonlin2=relu.ReLULayer,
+                 after_nonlin=relu.ReLULayer,
+                 before_nonlin=relu.ReLULayer,
+                 R = 1,
+                 feat_per_channel  = [2,2]
+                 ):
+        super().__init__()
+      
+
+        self.feat_per_channel = feat_per_channel
+        self.split_input_nonlin1=split_input_nonlin1
+        self.split_input_nonlin2=split_input_nonlin2
+        self.after_nonlin=after_nonlin
+        self.before_nonlin=before_nonlin
+        
+        self.coord_hidden_features = int(coord_hidden_features/np.sqrt(2))
+        self.coord_hidden_layers = coord_hidden_layers
+        self.after_hidden_features = int(after_hidden_features/np.sqrt(2))
+        self.after_hidden_layers = after_hidden_layers
+        self.before_hidden_features = int(before_hidden_features/np.sqrt(2))
+        self.before_hidden_layers = before_hidden_layers
+        self.reduce_method = "linear"
+
+        #breakpoint()
+        self.coord_input_layer = nn.ModuleList(
+            [nn.Linear(feat, self.coord_hidden_features ) for feat in self.feat_per_channel]
+        )
+        
+        #breakpoint()
+        self.coord_net = nn.ModuleList()
+        for i in range(self.after_hidden_layers):
+            if (i == (self.after_hidden_layers -1)):
+                
+                self.coord_net.append(self.after_nonlin(self.after_hidden_features, self.after_hidden_features*R, 
+                                    is_first=True, omega_0=first_omega_0,
+                                    scale=scale))
+                
+            else:
+                self.coord_net.append(self.after_nonlin(self.after_hidden_features, self.after_hidden_features, 
+                                    is_first=True, omega_0=first_omega_0,
+                                    scale=scale))
+                
+
+
+        
+  
+        self.fusion_operator = 'prod'
+        
+        # self.complex = False
+            
+        # if pos_encode:
+        #     self.positional_encoding = PosEncoding(in_features=in_features,
+        #                                            sidelength=sidelength,
+        #                                            fn_samples=fn_samples,
+        #                                            use_nyquist=use_nyquist)
+        #     in_features = self.positional_encoding.out_dim
+            
+        self.net = nn.ModuleList()
+        # self.net.append(self.nonlin(in_features, hidden_features, 
+        #                           is_first=True, omega_0=first_omega_0,
+        #                           scale=scale))
+
+        for i in range(before_hidden_layers):
+            self.net.append(self.before_nonlin(self.before_hidden_features, self.before_hidden_features, 
+                                      is_first=False, omega_0=hidden_omega_0,
+                                      scale=scale))
+        if not before_hidden_layers ==0:
+            if outermost_linear:
+                final_linear = nn.Linear(self.before_hidden_features,
+                                        out_features , bias = True,dtype= torch.cfloat)
+                            
+                self.net.append(final_linear)
+            else:
+                self.net.append(self.nonlin(self.before_hidden_features, out_features, 
+                                        is_first=False, omega_0=hidden_omega_0,
+                                        scale=scale))
+        else:
+            #breakpoint()
+            final_linear = nn.Linear(self.after_hidden_features,
+                                        out_features , bias = True,dtype= torch.cfloat)
+                            
+            self.net.append(final_linear)
+            
+        #self.net = nn.Sequential(*self.net)
+    
+    def forward(self, coords):
+        #breakpoint()
+        # if self.pos_encode:
+        #     coords = self.positional_encoding(coords)
+        #breakpoint()
+        hs = [self.forward_coord(coord, i) for i, coord in enumerate(coords)]
+        h = self.forward_fusion(hs)
+        
+        sh = h.shape
+                    
+                    
+        return h.reshape(-1,sh[-1]).real
+    
+
+    def forward_coord(self, coord, channel_id):
+        h = self.coord_input_layer[channel_id](coord)
+
+        for i in range(self.coord_hidden_layers):
+            h = self.coord_net[i](h)
+        
+        return h
+    
+    def forward_fusion(self, hs):
+        h = hs[0]
+        for hi in hs[1:]:
+            h = h * hi
+        #breakpoint()
+        h_sh = h.shape
+        #last_dim = h_sh[-1]
+        
+        # if self.before_hidden_features == 3:
+        #     pass
+            # # 마지막 차원을 3의 배수로 자릅니다.
+            # truncated_size = (last_dim // 3) * 3
+            # h = h[..., :truncated_size]
+
+            # # 선택된 방법에 따라 다른 동작을 수행합니다.
+            # if self.reduce_method == 'mean':
+            #     # 평균 풀링
+            #     h = h.reshape(*h_sh[:-1], -1, 3).mean(-2)
+            # elif self.reduce_method == 'max':
+            #     # 최대 풀링
+            #     h = h.reshape(*h_sh[:-1], -1, 3).max(-2)
+            # elif self.reduce_method == 'linear':
+            #     # 선형 변환
+            #     linear_transform = torch.nn.Linear(last_dim, 3).to(h.device)
+            #     h = linear_transform(h)
+            # else:
+            #     raise ValueError(f"Unknown reduce method: {self.reduce_method}")
+        #실험 -> only coord mlp 가 끝나도 가시 R전략을 사용하려면 아래 주석을 없애야함.
+        if h_sh[-1] > self.before_hidden_features:
+            h = h.reshape(*h_sh[:-1], self.before_hidden_features, -1).sum(-1)
+
+        for i in range(self.before_hidden_layers+1):
+            h = self.net[i](h)
+        return h
+

@@ -1,0 +1,58 @@
+{
+    "path": "240917_onther_debug_wire_d4_w256_cd2_cd256_R1_65536_decom_dim_uv_lr0.0005_knights",
+    "depth": 4,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "wire",
+    "lr": 0.0005,
+    "batch_size": 65536,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "linear",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "1": 12.079452928690365,
+        "2": 12.186876787202841,
+        "3": 12.18497134954758,
+        "4": 12.273096653569805,
+        "5": 12.43959560615252
+    },
+    "result_time": {
+        "1": {
+            "forward": 25.174986441655147,
+            "backward": 44.906205015611484,
+            "per_epoch_whole": 81756.6328125,
+            "inference_time": 96.3416256374783
+        },
+        "2": {
+            "forward": 24.92089529928454,
+            "backward": 45.07859432821046,
+            "per_epoch_whole": 81647.4140625,
+            "inference_time": 96.00916629367404
+        },
+        "3": {
+            "forward": 24.914282378028467,
+            "backward": 45.07905455856583,
+            "per_epoch_whole": 81625.75,
+            "inference_time": 95.79535335964626
+        },
+        "4": {
+            "forward": 24.922030828403376,
+            "backward": 45.10478240808401,
+            "per_epoch_whole": 81674.0625,
+            "inference_time": 95.8327102661133
+        },
+        "5": {
+            "forward": 24.907665445730377,
+            "backward": 45.05238500845893,
+            "per_epoch_whole": 81606.125,
+            "inference_time": 95.76866234673393
+        }
+    }
+}

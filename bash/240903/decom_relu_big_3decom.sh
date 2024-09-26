@@ -1,7 +1,7 @@
 stanford_path="/data/NeuLF_rgb/stanford_half"
 
-test_day="240913_decom_relu_big"
-test_day="240915_relu_big"
+
+test_day="240922_relu_decom_all_case_with_R"
 result_path="/data/result/${test_day}"
 
 
@@ -14,7 +14,7 @@ epoch="300"
 #datasets=( "knights" "bracelet" "bunny" "tarot")
 datasets=( "knights" )
 batch_sizes=("8192")
-Rs=("1")
+Rs=("2" "3")
 
 decom_dims=("uv")
 lrs=("0.0005")
@@ -31,7 +31,8 @@ for R in "${Rs[@]}"; do
                             for lr in "${lrs[@]}"; do
                                 for batch_size in "${batch_sizes[@]}"; do
                                     for decom_dim in "${decom_dims[@]}"; do
-                                        echo "Processing $dataset , $nonlin , $coord_depth , $coord_width ,$decom_dim"
+                                        echo "Processing $dataset , $nonlin , $depth , $width , $lr "
+                                        echo "Processing  $coord_depth , $coord_width ,$decom_dim"
                                         python nlf_decom_3decom.py \
                                             --data_dir "${stanford_path}/${dataset}" \
                                             --exp_dir "${result_path}/${test_day}_${nonlin}_d${depth}_w${width}_cd${coord_depth}_cd${coord_width}_R${R}_${batch_size}_decom_dim_${decom_dim}_lr${lr}_${dataset}" \
