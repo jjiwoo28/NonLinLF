@@ -501,12 +501,39 @@ def run(opt):
 #    optim = torch.optim.Adam(lr=learning_rate*min(1, maxpoints/(H*W)),
 #                             params=model.parameters())
     optim = torch.optim.Adam(lr=learning_rate,params=model.parameters())
+    
+    logger.set_metadata("lr",learning_rate)
+    
+    if opt.coord_depth >= 8:
+        lr_before = learning_rate/2
+    else:
+        lr_before = learning_rate
+    logger.set_metadata("lr_before",lr_before)
+    print(f"lr_before : {lr_before}")
+        
+    if opt.depth >= 8:
+        lr_after = learning_rate/2
+    else:
+        lr_after = learning_rate
+    logger.set_metadata("lr_after",lr_after)
+    print(f"lr_after : {lr_after}")
+        
+    
+    optim = torch.optim.Adam([
+        {'params': model.coord_input_layer.parameters(), 'lr': learning_rate},
+        {'params': model.net.parameters(), 'lr': lr_after},
+    ])
+    optim_coord = torch.optim.Adam([
+        {'params': model.coord_net.parameters(), 'lr': lr_before},
+    ])
    
     # Schedule to reduce lr to 0.1 times the initial rate in final epoch
     #scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
     
     #if (opt.nonlin == 'relu') or (opt.nonlin =='relu_skip'):
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.995) 
+    scheduler_coord = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.999) 
+    
 
         
     
@@ -560,8 +587,10 @@ def run(opt):
                 loss = ((output - data)**2).mean()
 
                 optim.zero_grad()
+                optim_coord.zero_grad()
                 loss.backward()
                 optim.step()
+                optim_coord.step()
                
 
 
@@ -591,8 +620,10 @@ def run(opt):
             
                 start.record()
                 optim.zero_grad()
+                optim_coord.zero_grad()
                 loss.backward()
                 optim.step()
+                optim_coord.step()
                 end.record()
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
@@ -607,13 +638,7 @@ def run(opt):
     #time_array[epoch] = time.time() - init_time
 
         with torch.no_grad():
-    #            pixelvalues_val = model(uvst_whole_val)
-    #            mse_loss_array[epoch] = ((color_whole_val - pixelvalues_val)**2).mean().item()
 
-    #            mse_loss_array[epoch] = ((gt_noisy - rec)**2).mean().item()
-    #            mse_array[epoch] = ((gt - rec)**2).mean().item()
-    #            im_gt = gt.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
-    #            im_rec = rec.reshape(H, W, 3).permute(2, 0, 1)[None, ...]
             if (epoch % opt.save_ckpt_path == 0) and (epoch != 0):
                 cpt_path = ckpt_path + f"ep{epoch}.pth"
                 torch.save(model.state_dict(), cpt_path)
@@ -658,50 +683,11 @@ def run(opt):
                 
                 logger.save_results()
 
-                # for name, param in model.named_parameters():
-                #     if 'omega_0' in name or 'scale_0' in name:
-                #         print(f'Epoch {epoch}, {name}: {param.item()}')
 
-                # cpt_path = os.path.join(ckpt_path,f"ep{epoch}.pth")
-                # torch.save(model.state_dict(), cpt_path)
-                
-    #                psnrval = -10*torch.log10(mse_loss_array[epoch])
-    #                tbar.set_description('%.1f'%psnrval)
-    #                tbar.refresh()
-        
         scheduler.step()
+        scheduler_coord.step()
             
         
-    #        imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()
-                
-            #cv2.imshow('Reconstruction', imrec[..., ::-1])            
-            #cv2.waitKey(1)
-        
-    #        if (mse_array[epoch] < best_mse) or (epoch == 0):
-    #            best_mse = mse_array[epoch]
-    #            best_img = imrec
-    
-
-   
-
-    # if posencode:
-    #     nonlin = 'posenc'
-        
-    # mdict = {
-    #         #'rec': best_img,
-    #         # 'gt': im,
-    #         # 'im_noisy': im_noisy,
-    #         # 'mse_noisy_array': mse_loss_array.detach().cpu().numpy(), 
-    #          'mse_array': mse_array.detach().cpu().numpy(),
-    #          'time_array': time_array.detach().cpu().numpy()}
-    
-#    os.makedirs('results/denoising', exist_ok=True)
-#    io.savemat('results/denoising/%s.mat'%nonlin, mdict)
-
-#    print('Best PSNR: %.2f dB'%utils.psnr(im, best_img))
-
-    
-
 
 
 

@@ -113,8 +113,10 @@ def run(opt):
             maxpoints = 8192
             
         elif opt.nonlin =="wire": 
-        
-            learning_rate =0.005
+            if opt.depth == 8:
+                learning_rate =0.001
+            else:
+                learning_rate =0.005
             maxpoints = 65536
                 
             
@@ -123,13 +125,12 @@ def run(opt):
             maxpoints = 8192
             
         elif opt.nonlin =="gauss": 
-            #after에서는 0.005가 잘 작동함.
-            learning_rate =0.0005
-            maxpoints = 8192
+            learning_rate =0.005
+            maxpoints = 65536
             
         elif opt.nonlin =="finer": 
             learning_rate =0.0005
-            maxpoints = 8192
+            maxpoints = 65536
             
             
             
@@ -637,35 +638,6 @@ def run(opt):
 #    optim = torch.optim.Adam(lr=learning_rate*min(1, maxpoints/(H*W)),
 #                             params=model.parameters())
     optim = torch.optim.Adam(lr=learning_rate,params=model.parameters())
-    logger.set_metadata("lr",learning_rate)
-    
-    if opt.coord_depth >= 8:
-        lr_before = learning_rate/5
-    else:
-        lr_before = learning_rate
-    logger.set_metadata("lr_before",lr_before)
-    print(f"lr_before : {lr_before}")
-        
-    if opt.depth >= 8:
-        lr_after = learning_rate/5
-    else:
-        lr_after = learning_rate
-    logger.set_metadata("lr_after",lr_after)
-    print(f"lr_after : {lr_after}")
-        
-    rgb_net_lr = 0.0005
-    logger.set_metadata("rgb_net_lr",rgb_net_lr)
-    print(f"rgb_net_lr: {rgb_net_lr}")
-        
-    optim = torch.optim.Adam([
-        {'params': model.coord_input_layer.parameters(), 'lr': learning_rate},
-        {'params': model.net.parameters(), 'lr': lr_after},
-        {'params': model.rgb_net.parameters(), 'lr': rgb_net_lr},
-    ])
-    print("rgb#@#$@#$@#$@#$")
-    optim_coord = torch.optim.Adam([
-        {'params': model.coord_net.parameters(), 'lr': lr_before},
-    ])
    
     # Schedule to reduce lr to 0.1 times the initial rate in final epoch
     #scheduler = LambdaLR(optim, lambda x: 0.1**min(x/niters, 1))
@@ -678,8 +650,7 @@ def run(opt):
     }
     
     scheduler = scheduler_type[opt.schdule_type]
-    scheduler_coord = scheduler_type[opt.schdule_type]
-    #scheduler_coord = torch.optim.lr_scheduler.ExponentialLR(optim_coord, gamma=0.999)
+
         
     
  #   x = torch.linspace(-1, 1, W)
@@ -727,16 +698,13 @@ def run(opt):
 
                 #breakpoint()
                 coords , data  = sampling_random()
-                output = model(coords)
+                output ,temp= model(coords)
                
                 loss = ((output - data)**2).mean()
 
                 optim.zero_grad()
-                optim_coord.zero_grad()
                 loss.backward()
                 optim.step()
-                optim_coord.step()
-               
                
 
 
@@ -752,7 +720,7 @@ def run(opt):
                 #breakpoint()
                 coords , data  = sampling_random()
                 start.record()
-                output = model(coords)
+                output ,temp= model(coords)
                 end.record()
                 torch.cuda.synchronize()
 
@@ -766,10 +734,8 @@ def run(opt):
             
                 start.record()
                 optim.zero_grad()
-                optim_coord.zero_grad()
                 loss.backward()
                 optim.step()
-                optim_coord.step()
                 end.record()
                 torch.cuda.synchronize()
                 avg_backward_time += (start.elapsed_time(end) / whole_batch_iter)
@@ -814,7 +780,7 @@ def run(opt):
                     coords , gt_color   = sampling_val(idx)
                     #breakpoint()
                     start.record()
-                    pred_color   = model(coords)
+                    pred_color , temp  = model(coords)
                     #temp = temp.reshape(*temp.shape[:-1], 3, -1).sum(-1)
                     #breakpoint()
                     end.record()
@@ -872,7 +838,6 @@ def run(opt):
     #                tbar.refresh()
         
         scheduler.step()
-        scheduler_coord.step()
             
         
     #        imrec = rec[0, ...].reshape(H, W, 3).detach().cpu().numpy()

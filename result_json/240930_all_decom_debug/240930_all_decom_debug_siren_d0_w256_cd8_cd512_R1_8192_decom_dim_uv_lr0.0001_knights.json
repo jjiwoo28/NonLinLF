@@ -1,0 +1,65 @@
+{
+    "path": "240930_all_decom_debug_siren_d0_w256_cd8_cd512_R1_8192_decom_dim_uv_lr0.0001_knights",
+    "depth": 0,
+    "width": 512,
+    "coord_depth": 8,
+    "coord_width": 512,
+    "dataset_name": "knights",
+    "model_info": "siren",
+    "lr": 0.0001,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "linear",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "1": 18.863883161914387,
+        "2": 19.768752084271917,
+        "3": 22.37082463317249,
+        "4": 23.14356356965924,
+        "5": 21.351488918812528,
+        "6": 23.5996579247481
+    },
+    "result_time": {
+        "1": {
+            "forward": 1.6811606158602488,
+            "backward": 3.813073193016356,
+            "per_epoch_whole": 64073.34375,
+            "inference_time": 4.775598208109538
+        },
+        "2": {
+            "forward": 1.6101947610740281,
+            "backward": 3.9204212668574137,
+            "per_epoch_whole": 64679.109375,
+            "inference_time": 5.083477338155112
+        },
+        "3": {
+            "forward": 1.6441860864693034,
+            "backward": 3.979057562456929,
+            "per_epoch_whole": 65307.39453125,
+            "inference_time": 5.169368849860296
+        },
+        "4": {
+            "forward": 1.6160247715828184,
+            "backward": 3.8562059863164375,
+            "per_epoch_whole": 64045.4765625,
+            "inference_time": 4.6298418045043945
+        },
+        "5": {
+            "forward": 1.624263688670583,
+            "backward": 3.9754532801058255,
+            "per_epoch_whole": 65179.87890625,
+            "inference_time": 5.091559039221869
+        },
+        "6": {
+            "forward": 1.5906130557808986,
+            "backward": 3.802582395169568,
+            "per_epoch_whole": 63237.1953125,
+            "inference_time": 4.413607120513916
+        }
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "path": "240930_all_decom_debug_siren_d0_w256_cd2_cd256_R1_8192_decom_dim_uv_lr0.0005_knights",
+    "depth": 0,
+    "width": 256,
+    "coord_depth": 2,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "siren",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "linear",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0
+    },
+    "result_time": {}
+}

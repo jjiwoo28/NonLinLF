@@ -225,23 +225,11 @@ class INR(nn.Module):
             self.net.append(self.before_nonlin(before_hidden_features, before_hidden_features, 
                                       is_first=False, omega_0=hidden_omega_0,
                                       scale=scale))
-        if not before_hidden_layers ==0:
-            if outermost_linear:
-                final_linear = nn.Linear(before_hidden_features,
-                                        out_features , bias = True)
-                            
-                self.net.append(final_linear)
-            else:
-                self.net.append(self.nonlin(before_hidden_features, out_features, 
-                                        is_first=False, omega_0=hidden_omega_0,
-                                        scale=scale))
-        else:
-            #breakpoint()
-            final_linear = nn.Linear(after_hidden_features,
-                                        out_features , bias = True)
-                            
-            self.net.append(final_linear)
             
+        self.rgb_net = nn.Linear(before_hidden_features,
+                                        out_features , bias = True)
+        
+      
         #self.net = nn.Sequential(*self.net)
     
     def forward(self, coords):
@@ -250,18 +238,19 @@ class INR(nn.Module):
         #     coords = self.positional_encoding(coords)
         #breakpoint()
         hs = [self.forward_coord(coord, i) for i, coord in enumerate(coords)]
-        h = self.forward_fusion(hs)
+        h  = self.forward_fusion(hs)
+        
         
         sh = h.shape
                     
-                    
+        #breakpoint()            
         return h.reshape(-1,sh[-1])
     
 
     def forward_coord(self, coord, channel_id):
         h = self.coord_input_layer[channel_id](coord)
 
-        for i in range(self.coord_hidden_layers):
+        for i in range(self.after_hidden_layers):
             h = self.coord_net[i](h)
         
         return h
@@ -272,6 +261,7 @@ class INR(nn.Module):
             h = h * hi
         #breakpoint()
         h_sh = h.shape
+        
         #last_dim = h_sh[-1]
         
         # if self.before_hidden_features == 3:
@@ -294,11 +284,14 @@ class INR(nn.Module):
             # else:
             #     raise ValueError(f"Unknown reduce method: {self.reduce_method}")
         #실험 -> only coord mlp 가 끝나도 가시 R전략을 사용하려면 아래 주석을 없애야함.
-        # elif h_sh[-1] > self.before_hidden_features:
-        #     h = h.reshape(*h_sh[:-1], self.before_hidden_features, -1).sum(-1)
+        if h_sh[-1] > self.before_hidden_features:
+            h = h.reshape(*h_sh[:-1], self.before_hidden_features, -1).sum(-1)
 
-        for i in range(self.before_hidden_layers+1):
+        for i in range(self.before_hidden_layers):
             h = self.net[i](h)
+            
+        h = self.rgb_net(h)    
+        
         return h
     
 
@@ -408,12 +401,13 @@ class WIRE_INR(nn.Module):
         #     coords = self.positional_encoding(coords)
         #breakpoint()
         hs = [self.forward_coord(coord, i) for i, coord in enumerate(coords)]
-        h = self.forward_fusion(hs)
+        h ,temp= self.forward_fusion(hs)
+        
         
         sh = h.shape
                     
                     
-        return h.reshape(-1,sh[-1]).real
+        return h.reshape(-1,sh[-1]).real , temp
     
 
     def forward_coord(self, coord, channel_id):
@@ -428,6 +422,8 @@ class WIRE_INR(nn.Module):
         h = hs[0]
         for hi in hs[1:]:
             h = h * hi
+        
+        temp = h
         #breakpoint()
         h_sh = h.shape
         #last_dim = h_sh[-1]
@@ -457,5 +453,5 @@ class WIRE_INR(nn.Module):
 
         for i in range(self.before_hidden_layers+1):
             h = self.net[i](h)
-        return h
+        return h , temp
 

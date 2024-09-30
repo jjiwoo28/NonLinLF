@@ -1,20 +1,20 @@
-stanford_path="/data/NeuLF_rgb/stanford_half"
+stanford_path="/data/NeuLF_rgb/stanford_half" #데이터셋 경로
 
 
-test_day="240930_relu_decom_all_case_with_R"
-result_path="/data/result/${test_day}"
+test_day="240930_run_decom_relu_all_case_fix_with_Rp" #실험결과 파일 (json파일 ) 중간 이름을 결정합니다.
+result_path="/data/result/${test_day}" #실험 결과 파일 저장 경로 , 기본적으로는 최상위 data 폴더의 하위 폴더로 지정되어있습니다.
 
 
 depths=("4" "6" "8" "2")
-widths=("256")
-coord_depths=("2" "4" "6" "8")
+widths=("256") 
+coord_depths=("4" "6" "8" "2")
 coord_widths=("256")
 epoch="300"
 
 #datasets=( "knights" "bracelet" "bunny" "tarot")
 datasets=( "knights" )
 batch_sizes=("8192")
-Rs=("2" "3")
+Rs=("1")
 
 decom_dims=("uv")
 lrs=("0.0005")
@@ -24,11 +24,11 @@ nomlin=("relu")
 for R in "${Rs[@]}"; do
     for depth in "${depths[@]}"; do
         for width in "${widths[@]}"; do
-            for coord_depth in "${coord_depths[@]}"; do
-                for coord_width in "${coord_widths[@]}"; do
+            for coord_width in "${coord_widths[@]}"; do
+                for coord_depth in "${coord_depths[@]}"; do
                     for dataset in "${datasets[@]}"; do
-                        for nonlin in "${nomlin[@]}"; do  # 여기를 수정
-                            for lr in "${lrs[@]}"; do
+                        for nonlin in "${nomlin[@]}"; do  
+                            for lr in "${lrs[@]}"; do  
                                 for batch_size in "${batch_sizes[@]}"; do
                                     for decom_dim in "${decom_dims[@]}"; do
                                         echo "Processing $dataset , $nonlin , $depth , $width , $lr "
@@ -37,7 +37,7 @@ for R in "${Rs[@]}"; do
                                             --data_dir "${stanford_path}/${dataset}" \
                                             --exp_dir "${result_path}/${test_day}_${nonlin}_d${depth}_w${width}_cd${coord_depth}_cd${coord_width}_R${R}_${batch_size}_decom_dim_${decom_dim}_lr${lr}_${dataset}" \
                                             --depth $depth \
-                                            --width $width \
+                                            --width $coord_width \
                                             --coord_depth $coord_depth \
                                             --coord_width $coord_width \
                                             --whole_epoch $epoch \
@@ -46,9 +46,11 @@ for R in "${Rs[@]}"; do
                                             --lr $lr \
                                             --benchmark \
                                             --batch_size $batch_size \
-                                            --gpu 0 \
+                                            --gpu 1 \
+                                            --schdule_type linear\
                                             --decom_dim $decom_dim \
-                                            --R $R
+                                            --R $R \
+                                            --lr_batch_preset
 
                                         python asem_json.py "/data/result/${test_day}" "result_json/${test_day}"
                                     done

@@ -1,0 +1,44 @@
+{
+    "path": "240930_all_decom_debug_relu_d0_w256_cd8_cd256_R1_65536_decom_dim_uv_lr0.0005_knights",
+    "depth": 0,
+    "width": 256,
+    "coord_depth": 8,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "relu",
+    "lr": 0.0005,
+    "batch_size": 65536,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "linear",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "1": 13.825484575480846,
+        "2": 13.855167673662988,
+        "3": 13.659190983014092
+    },
+    "result_time": {
+        "1": {
+            "forward": 2.2944190894546814,
+            "backward": 3.4476875829861653,
+            "per_epoch_whole": 8706.69921875,
+            "inference_time": 2.302844458156162
+        },
+        "2": {
+            "forward": 1.8023110874590176,
+            "backward": 3.4788354893044193,
+            "per_epoch_whole": 7956.75048828125,
+            "inference_time": 2.933969775835673
+        },
+        "3": {
+            "forward": 1.7635191415523581,
+            "backward": 3.4728219490562706,
+            "per_epoch_whole": 8117.58935546875,
+            "inference_time": 2.2499484750959606
+        }
+    }
+}

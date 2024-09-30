@@ -1,0 +1,37 @@
+{
+    "path": "240930_all_decom_debug_siren_d0_w256_cd8_cd256_R1_8192_decom_dim_uv_lr0.0005_knights",
+    "depth": 0,
+    "width": 256,
+    "coord_depth": 8,
+    "coord_width": 256,
+    "dataset_name": "knights",
+    "model_info": "siren",
+    "lr": 0.0005,
+    "batch_size": 8192,
+    "omega": 5,
+    "sigma": 5,
+    "decom_dim": "uv",
+    "R": 1,
+    "schdule_type": "linear",
+    "lr_gamma": 0.995,
+    "lr_linear_C": 1,
+    "result": {
+        "0": 0,
+        "1": 12.159916692713493,
+        "2": 12.142038526365571
+    },
+    "result_time": {
+        "1": {
+            "forward": 1.6050356795018677,
+            "backward": 3.6044723320894345,
+            "per_epoch_whole": 60816.22265625,
+            "inference_time": 2.6137849224938283
+        },
+        "2": {
+            "forward": 1.5700173992502509,
+            "backward": 3.625681543651863,
+            "per_epoch_whole": 60631.296875,
+            "inference_time": 2.4269937674204507
+        }
+    }
+}

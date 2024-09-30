@@ -6,15 +6,18 @@ result_path="/data/result/${test_day}" #실험 결과 파일 저장 경로 , 기
 
 
 depths=("4" "6" "8" "2")
-widths=("256") 
-coord_depths=("2" "4" "6" "8")
+depths=("1")
+widths=("128") 
+coord_depths=("4" "6" "8")
+coord_depths=("8")
 coord_widths=("256")
-epoch="300"
+epoch="100"
 
 #datasets=( "knights" "bracelet" "bunny" "tarot")
 datasets=( "knights" )
 batch_sizes=("8192")
 Rs=("2" "3")
+Rs=("3")
 
 decom_dims=("uv")
 lrs=("0.0005")
@@ -28,6 +31,7 @@ for R in "${Rs[@]}"; do
                 for coord_width in "${coord_widths[@]}"; do
                     for dataset in "${datasets[@]}"; do
                         for nonlin in "${nomlin[@]}"; do  
+                            for lr in "${lrs[@]}"; do  
                                 for batch_size in "${batch_sizes[@]}"; do
                                     for decom_dim in "${decom_dims[@]}"; do
                                         echo "Processing $dataset , $nonlin , $depth , $width , $lr "
@@ -40,7 +44,7 @@ for R in "${Rs[@]}"; do
                                             --coord_depth $coord_depth \
                                             --coord_width $coord_width \
                                             --whole_epoch $epoch \
-                                            --test_freq 10 \
+                                            --test_freq 1 \
                                             --nonlin $nonlin \
                                             --lr $lr \
                                             --benchmark \
